@@ -4,8 +4,14 @@
 
 #include <vector>
 #include <math.h>
+#include <iostream>
+using namespace std;
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/rotate_vector.hpp>
+#include <glm/gtx/norm.hpp>
+
 typedef glm::mat3 mat3;
 typedef glm::vec3 vec3;
 const float pi = 3.14159265 ; // For portability across platforms
@@ -20,9 +26,10 @@ struct Cube {
 	vector<vec3> verts;
 } sCube;
 
-int partition = 50;
+int partition = 20;
 
-vec3 force_center(0,0,0);
+vec3 force_center(0,-10,0);
+const float DISPLACE_PER_UNIT = 3.3;
 
 // cube unfolding
 // looking to -Z axis
@@ -134,13 +141,27 @@ mat3 rotate(const float degrees, const vec3& axis)
 
 
 
+float calcDisplace(vec3 &v) {
+	float dist = glm::gtx::norm::l2Norm(v, force_center);
+
+	// cout << "disp = " << dist*DISPLACE_PER_UNIT  << endl;
+	// return 0;
+	return DISPLACE_PER_UNIT*dist;
+}
+
+float rSpeed = 2;
+float rAccel = 0.02;
+
 static void redraw(void)
 {
 	static float rotateBy=0;
 	int a,b;
 	unsigned int currentVer;
 
-	rotateBy+=1;
+	if (rotateBy > 360)
+		rotateBy -= 360;
+	
+	rotateBy+=rSpeed;
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
@@ -148,17 +169,29 @@ static void redraw(void)
 	glPushMatrix();
 	
 	glTranslatef(0,0,-50);
-	glRotatef(rotateBy,0,1,0.6);
+	// glRotatef(rotateBy,0,1,0.6);
 
 	glBegin(GL_QUADS);
 		
 	for (int i = 0; i < sCube.verts.size(); i++) {
 		vec3 cv = sCube.verts[i];
+		cv = glm::rotate(cv, rotateBy-calcDisplace(cv), vec3(0,1,0.0));
+		
 		float v[3] = {cv.x, cv.y, cv.z};
-		float col[3] = {(i%255)/255.0,(i%255)/255.0,(i%255)/255.0};			
+		float col[3] = {(i%255)/255.0,(i%255)/255.0,(i%255)/255.0};
+
 		glColor3fv(col);
 		glVertex3fv(v);
+
+		// sCube.verts[i] = cv;
 	}
+
+	// rSpeed += rAccel;
+
+	if (rSpeed > 5)
+		rAccel =- rAccel;
+	if (rSpeed < 1)
+		rAccel =- rAccel;
 		
 	glEnd();
 	glPopMatrix();
