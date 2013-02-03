@@ -31,7 +31,7 @@ struct Cube {
 int partition = 20;
 
 vec3 force_center(0,-10,0);
-const float DISPLACE_PER_UNIT = 6.9;
+float DISPLACE_PER_UNIT = 7;
 
 // cube unfolding
 // looking to -Z axis
@@ -252,6 +252,8 @@ vec3 rotFunc1(const vec3 &v, vec3 axis, int t, bool debug = false) {
 int maxtime = 1080;
 float rSpeed = 4;
 
+bool wireframe = false;
+
 static void redraw(void)
 {
 	static float t=50;
@@ -265,7 +267,9 @@ static void redraw(void)
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	/* glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ); */
+	if (wireframe)
+		glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+	
 	glShadeModel(GL_SMOOTH);
 
 	glPushMatrix();
@@ -296,10 +300,59 @@ static void redraw(void)
 	glutPostRedisplay();
 }
 
+void print_usage() {
+	cout << "Usage: cube-slime [-w] [-p partition_number] [-s speed] [-l latency] -h\n"
+	     "\t-w: use wireframe mode (default: off)\n"
+		"\t-p: cube face partition count (default: 20)\n"
+		"\t-s: rotation speed (default: 4)\n"
+		"\t-l: vertices intertion (default: 7)\n"
+		"\t-h: print this help message and exit\n";
+}
+
+void init(int argc, char **argv) {
+	int rez;
+	while ((rez = getopt(argc,argv,"hwp:s:l:")) != -1){
+		switch (rez){
+		case 'w':
+			wireframe = true;
+			break;
+			
+		case 'p':
+			partition = atoi(optarg);
+			if (partition < 0) {
+				cout << "bad partition number" << endl;
+				exit(EXIT_FAILURE);
+			}
+			break;
+			
+		case 's':
+			rSpeed = atoi(optarg);
+			if (rSpeed < 0) {
+				cout << "bad speed" << endl;
+				exit(EXIT_FAILURE);
+			}
+			break;
+			
+		case 'l':
+			DISPLACE_PER_UNIT = atof(optarg);
+			if (DISPLACE_PER_UNIT < 0) {
+				cout << "bad latency" << endl;
+				exit(EXIT_FAILURE);
+			}
+			break;
+
+		case 'h':
+			print_usage();
+			exit(EXIT_SUCCESS);
+		case '?': print_usage(); exit(EXIT_FAILURE);
+		};
+	};
+}
 
 int main(int argc, char **argv) 
 {
-	srand(time(NULL));
+	init (argc, argv);
+	
 	glutInit(&argc,argv);
 	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
 	glutCreateWindow("Vector slime demo");
