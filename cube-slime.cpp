@@ -29,7 +29,7 @@ struct Cube {
 int partition = 20;
 
 vec3 force_center(0,-10,0);
-const float DISPLACE_PER_UNIT = 7;
+const float DISPLACE_PER_UNIT = 8.9;
 
 // cube unfolding
 // looking to -Z axis
@@ -120,95 +120,68 @@ void initCube(void)
 	generatePolyCubeVerts(vec3(-10,-10,-10), vec3(10,10,10), partition, sCube);
 }
 
-mat3 rotate(const float degrees, const vec3& axis) 
-{
-    	double phi = degrees/180 * pi;
-	vec3 u = glm::normalize(axis);
-
-	return mat3 (
-		cos(phi) + u.x * u.x * (1 - cos(phi)),
-		u.x * u.y * (1 - cos(phi)) - u.z * sin(phi),
-		u.x * u.z * (1 - cos(phi)) + u.y * sin(phi),
-
-		u.y * u.x * (1 - cos(phi)) + u.z * sin(phi),
-		cos(phi) + u.y * u.y * (1 - cos(phi)),
-		u.y * u.z * (1 - cos(phi)) - u.x * sin(phi),
-		
-		u.z * u.x * (1 - cos(phi)) - u.y * sin(phi),
-		u.z * u.y * (1 - cos(phi)) + u.x * sin(phi),
-		cos(phi) + u.z * u.z * (1 - cos(phi)));
-}
-
-
 
 float calcDisplace(const vec3 &v) {
 	float dist = glm::gtx::norm::l2Norm(v, force_center);
 
-	// cout << "disp = " << dist*DISPLACE_PER_UNIT  << endl;
+	// cout << "disp = " << dist*DISPLACE_PER_UNIT  << endl;;
 	// return 0;
 	return DISPLACE_PER_UNIT*dist;
 }
-
-vec3 rotFunc1(const vec3 &v, vec3 axis, int t) {
-	vec3 rv;
-	// float rotateBy = t % 360;
-	float rotateBy = t;
-	
-	float delay = calcDisplace(v);
-	rotateBy -= delay;
-
-	if (rotateBy < 0.01) {
-		return v;
-	}
-
-	if (rotateBy > 360) {
-		return v;
-	}
-
-	// cout << delay << endl;
-	
-	rv = glm::rotate(v, rotateBy, axis);
-
-	return rv;
-}
-
 struct time_frame {
 	int from;
 	int to;
-	int dt;
+	float dt;
 };
 
 time_frame timeline[] = {
-	{0,   250, 3},
-	{250, 270, 1},
-	{270, 520, 3},
-	{520, 540, 1},
-	{540, 770, 3},
-	{770, 790, 1}
+	{0,   100, 1},
+	{100, 140, 0.2},
+	{140, 240, 1},
+	{240, 260, 0.1},
+	{260, 360, 1},
 };
 
-int maxtime = 1000;
 
-int rTime(int t) {
-	int dt;
+float rTime(int t) {
+	float dt;
 	int tl = sizeof(timeline) / sizeof(time_frame);
 	
-	dt = 3;
+	dt = 1;
 	for (int i = 0; i < tl; i++) {
 		if (t > timeline[i].from && t < timeline[i].to) {
 			dt = timeline[i].dt;
 			break;
 		}
 	}
-
-	if (t > maxtime)
-		t = 0;
-	
-	return t + dt;
+	// if (dt == 5)
+	// cout << t+dt << endl;
+	return t*dt;
 }
 
 
-float rSpeed = 3;
+vec3 rotFunc1(const vec3 &v, vec3 axis, int t) {
+	vec3 rv;
+
+	float nt = t - calcDisplace(v);
+	
+	if (nt < 0.01) {
+		return v;
+	}
+
+	if (nt > 360) {
+		return v;
+	}
+
+	nt = rTime(nt);
+	rv = glm::rotate(v, nt, axis);
+
+	return rv;
+}
+
+
+int maxtime = 1000;
+float rSpeed = 2;
 float rAccel = 0.2;
 float yRot = 0;
 float rUpper = 10;
@@ -220,18 +193,9 @@ static void redraw(void)
 	int a,b;
 	unsigned int currentVer;
 
-	// if (rotateBy > 360) {
-	// 	rotateBy -= 360;
-
-	// 	if (yRot >= 0.9)
-	// 		yRot = 0.0;
-	// 	else yRot = 0.91;
-
-	// }
-	// t+=rSpeed;
-	t = rTime(t);
-
-	// cout << t << endl;
+	if (t > maxtime)
+		t = 0;
+	t+=rSpeed;
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -260,13 +224,13 @@ static void redraw(void)
 		// sCube.verts[i] = cv;
 	}
 
-	rSpeed += rAccel;
+	// rSpeed += rAccel;
 
 
-	if (rSpeed > rUpper)
-		rAccel =- rAccel;
-	if (rSpeed < rLower)
-		rAccel =- rAccel;
+	// if (rSpeed > rUpper)
+	// 	rAccel =- rAccel;
+	// if (rSpeed < rLower)
+	// 	rAccel =- rAccel;
 		
 	glEnd();
 	glPopMatrix();
