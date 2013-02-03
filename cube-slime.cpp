@@ -60,7 +60,6 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_partition, Cube &c) {
 
 	for (int px = 0; px < face_partition; px++)
 		for (int py = 0; py < face_partition; py++) {
-		
 			c.verts.push_back( vec3(from.x + px * sx,     from.y + py * sy,     from.z));
 			c.verts.push_back( vec3(from.x + px * sx,     from.y + (py+1) * sy, from.z));			
 			c.verts.push_back( vec3(from.x + (px+1) * sx, from.y + (py+1) * sy, from.z));
@@ -71,7 +70,6 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_partition, Cube &c) {
 			c.cols.push_back( vec3( (cx*(px+1) % 255) / 255.0, (cx*(py+1) % 255) / 255, 0));
 			c.cols.push_back( vec3( (cx*(px+1) % 255) / 255.0, (cx*py % 255) / 255, 0));
 		}
-
 
 	//4 (back)
 	for (int px = 0; px < face_partition; px++)
@@ -85,7 +83,6 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_partition, Cube &c) {
 			c.cols.push_back( vec3( (cx*px % 255) / 255.0, (cx*(py+1) % 255) / 255, 0));
 			c.cols.push_back( vec3( (cx*(px+1) % 255) / 255.0, (cx*(py+1) % 255) / 255, 0));
 			c.cols.push_back( vec3( (cx*(px+1) % 255) / 255.0, (cx*py % 255) / 255, 0));
-
 		}
 
 	//2 (right)
@@ -100,7 +97,6 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_partition, Cube &c) {
 			c.cols.push_back( vec3(0,  (cx*(py+1)%255) / 255.0 , (cx*pz%255)/255.0 ));
 			c.cols.push_back( vec3(0,  (cx*(py+1)%255) / 255.0 , (cx*(pz+1)%255)/255.0));
 			c.cols.push_back( vec3(0,  (cx*py%255)/255.0     , (cx*(pz+1) % 255) / 255.0));
-
 		}
 
 
@@ -132,8 +128,6 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_partition, Cube &c) {
 			c.cols.push_back( vec3((cx*(px+1)%255) / 255.0 , 0, cx*(pz%255)/255.0 ));
 			c.cols.push_back( vec3((cx*(px+1)%255) / 255.0 , 0,(cx*(pz+1)%255)/255.0));
 			c.cols.push_back( vec3((cx*px%255)/255.0     , 0,(cx*(pz+1) % 255) / 255.0));
-
-
 		}
 
 	//3 (bottom)
@@ -148,8 +142,6 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_partition, Cube &c) {
 			c.cols.push_back( vec3((cx*(px+1)%255) / 255.0 , 0, (cx*pz%255)/255.0 ));
 			c.cols.push_back( vec3((cx*(px+1)%255) / 255.0 , 0,(cx*(pz+1)%255)/255.0));
 			c.cols.push_back( vec3((cx*px%255)/255.0     , 0,(cx*(pz+1) % 255) / 255.0));
-
-
 		}
 }
 
@@ -191,34 +183,34 @@ time_frame timeline[] = {
 
 
 
-float rTime(int t) {
-	float dt;
-	int di = -1;
-	int tl = sizeof(timeline) / sizeof(time_frame);
+/* float rTime(int t) { */
+/* 	float dt; */
+/* 	int di = -1; */
+/* 	int tl = sizeof(timeline) / sizeof(time_frame); */
 	
-	dt = 1;
-	for (int i = 0; i < tl; i++) {
-		if (t >= timeline[i].from && t <= timeline[i].to) {
-			di = i;
-			break;
-		}
-	}
+/* 	dt = 1; */
+/* 	for (int i = 0; i < tl; i++) { */
+/* 		if (t >= timeline[i].from && t <= timeline[i].to) { */
+/* 			di = i; */
+/* 			break; */
+/* 		} */
+/* 	} */
 
-	if (di == -1) {
-		/* cout << "out, t = " << t << endl; */
-		return t;
-	}
+/* 	if (di == -1) { */
+/* 		/\* cout << "out, t = " << t << endl; *\/ */
+/* 		return t; */
+/* 	} */
 
-	float len = timeline[di].to - timeline[di].from;
-	float step = (timeline[di].d2 - timeline[di].d1) / len;
-	float diff = timeline[di].d1 + (t - timeline[di].from) * step;
+/* 	float len = timeline[di].to - timeline[di].from; */
+/* 	float step = (timeline[di].d2 - timeline[di].d1) / len; */
+/* 	float diff = timeline[di].d1 + (t - timeline[di].from) * step; */
 
-	/* if (diff < 0) */
-	/* 	cout << "diff = " << diff << endl; */
-	diff = 1;
+/* 	/\* if (diff < 0) *\/ */
+/* 	/\* 	cout << "diff = " << diff << endl; *\/ */
+/* 	diff = 1; */
 	
-	return t*diff;
-}
+/* 	return t*diff; */
+/* } */
 
 
 vec3 rotFunc1(const vec3 &v, vec3 axis, int t, bool debug = false) {
@@ -241,7 +233,7 @@ vec3 rotFunc1(const vec3 &v, vec3 axis, int t, bool debug = false) {
 		return v;
 	}
 
-	nt = rTime(nt);
+	/* nt = rTime(nt); */
 
 	if (debug) {
 		cout << "nt: " << nt << endl;
@@ -256,12 +248,9 @@ vec3 rotFunc1(const vec3 &v, vec3 axis, int t, bool debug = false) {
 }
 
 
-int maxtime = 1000;
+
+int maxtime = 1080;
 float rSpeed = 4;
-float rAccel = 0.2;
-float yRot = 0;
-float rUpper = 10;
-float rLower = 3;
 
 static void redraw(void)
 {
@@ -271,6 +260,7 @@ static void redraw(void)
 
 	if (t > maxtime)
 		t = 50;
+	
 	t+=rSpeed;
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -288,32 +278,17 @@ static void redraw(void)
 	for (int i = 0; i < sCube.verts.size(); i++) {
 		vec3 cv = sCube.verts[i];
 		vec3 cc = sCube.cols[i];
-		cv = rotFunc1(cv, vec3(0,1,0.2), t, (i == 0 ? true : false));
-		cv = rotFunc1(cv, vec3(0,0.2,1), t-260);
-		cv = rotFunc1(cv, vec3(0.2,0.5,0.2), t-420);
-		
-		float v[3] = {cv.x, cv.y, cv.z};
+		cv = rotFunc1(cv, vec3(0,-1,-0.2), t);
+		cv = rotFunc1(cv, vec3(0,-0.5,-0.4), t-350);
+		cv = rotFunc1(cv, vec3(0.4,-0.8,0.0), t-620);
 
-		/* float col[3] = {(i%255)/255.0,0,(i%128)/255.0}; */
+		float v[3] = {cv.x, cv.y, cv.z};
 		float col[3] = {cc.x, cc.y, cc.z};
 		
-		if (i < 10)
-			col[0] = 1;
-
 		glColor3fv(col);
 		glVertex3fv(v);
-
-		// sCube.verts[i] = cv;
 	}
-
-	// rSpeed += rAccel;
-
-
-	// if (rSpeed > rUpper)
-	// 	rAccel =- rAccel;
-	// if (rSpeed < rLower)
-	// 	rAccel =- rAccel;
-		
+	
 	glEnd();
 	glPopMatrix();
 	
