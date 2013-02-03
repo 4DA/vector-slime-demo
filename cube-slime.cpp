@@ -172,6 +172,42 @@ vec3 rotFunc1(const vec3 &v, vec3 axis, int t) {
 	return rv;
 }
 
+struct time_frame {
+	int from;
+	int to;
+	int dt;
+};
+
+time_frame timeline[] = {
+	{0,   250, 3},
+	{250, 270, 1},
+	{270, 520, 3},
+	{520, 540, 1},
+	{540, 770, 3},
+	{770, 790, 1}
+};
+
+int maxtime = 1000;
+
+int rTime(int t) {
+	int dt;
+	int tl = sizeof(timeline) / sizeof(time_frame);
+	
+	dt = 3;
+	for (int i = 0; i < tl; i++) {
+		if (t > timeline[i].from && t < timeline[i].to) {
+			dt = timeline[i].dt;
+			break;
+		}
+	}
+
+	if (t > maxtime)
+		t = 0;
+	
+	return t + dt;
+}
+
+
 float rSpeed = 3;
 float rAccel = 0.2;
 float yRot = 0;
@@ -192,7 +228,10 @@ static void redraw(void)
 	// 	else yRot = 0.91;
 
 	// }
-	t+=rSpeed;
+	// t+=rSpeed;
+	t = rTime(t);
+
+	// cout << t << endl;
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
