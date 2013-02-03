@@ -305,7 +305,7 @@ void print_usage() {
 	     "\t-w: use wireframe mode (default: off)\n"
 		"\t-p: cube face partition count (default: 20)\n"
 		"\t-s: rotation speed (default: 4)\n"
-		"\t-l: vertices intertion (default: 7)\n"
+		"\t-l: vertices inertion (default: 7)\n"
 		"\t-h: print this help message and exit\n";
 }
 

@@ -6,5 +6,5 @@ cube-slime [-w] [-p partition_number] [-s speed] [-l latency] -h
 	   -w: use wireframe mode (default: off)
 	   -p: cube face partition count (default: 20)"
 	   -s: rotation speed (default: 4)
-	   -l: vertices intertion (default: 7)
+	   -l: vertices inertion (default: 7)
 	   -h: print this help message and exit
