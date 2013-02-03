@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <math.h>
+#include <unistd.h>
 #include <iostream>
 using namespace std;
 
@@ -24,6 +25,7 @@ static void redraw(void);
 
 struct Cube {
 	vector<vec3> verts;
+	vector<vec3> cols;
 } sCube;
 
 int partition = 20;
@@ -52,6 +54,7 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_partition, Cube &c) {
 	float sy = (to.y - from.y) / face_partition;
 	float sz = (to.z - from.z) / face_partition;
 	
+	int cx = 127.0 / face_partition;
 
 	//1 (front)
 
@@ -62,6 +65,11 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_partition, Cube &c) {
 			c.verts.push_back( vec3(from.x + px * sx,     from.y + (py+1) * sy, from.z));			
 			c.verts.push_back( vec3(from.x + (px+1) * sx, from.y + (py+1) * sy, from.z));
 			c.verts.push_back( vec3(from.x + (px+1) * sx, from.y + py * sy,     from.z));
+
+			c.cols.push_back( vec3( (cx*px % 255) / 255.0, (cx*py % 255) / 255, 0));
+			c.cols.push_back( vec3( (cx*px % 255) / 255.0, ((py+1) % 255) / 255, 0));
+			c.cols.push_back( vec3( (cx*(px+1) % 255) / 255.0, (cx*(py+1) % 255) / 255, 0));
+			c.cols.push_back( vec3( (cx*(px+1) % 255) / 255.0, (cx*py % 255) / 255, 0));
 		}
 
 
@@ -73,6 +81,10 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_partition, Cube &c) {
 			c.verts.push_back( vec3(from.x + (px+1) * sx, from.y + (py+1) * sy, to.z));
 			c.verts.push_back( vec3(from.x + px * sx,     from.y + (py+1) * sy, to.z));
 
+			c.cols.push_back( vec3( (cx*px % 255) / 255.0, (cx*py % 255) / 255, 0));
+			c.cols.push_back( vec3( (cx*px % 255) / 255.0, (cx*(py+1) % 255) / 255, 0));
+			c.cols.push_back( vec3( (cx*(px+1) % 255) / 255.0, (cx*(py+1) % 255) / 255, 0));
+			c.cols.push_back( vec3( (cx*(px+1) % 255) / 255.0, (cx*py % 255) / 255, 0));
 
 		}
 
@@ -83,6 +95,12 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_partition, Cube &c) {
 			c.verts.push_back( vec3(to.x, from.y + (py+1) * sy, from.z + pz * sz));
 			c.verts.push_back( vec3(to.x, from.y + (py+1) * sy, from.z + (pz+1) * sz));
 			c.verts.push_back( vec3(to.x, from.y + py     * sy, from.z + (pz+1) * sz));
+
+			c.cols.push_back( vec3(0,  (cx*py%255)/255.0     , (cx*pz%255)/255.0 ));
+			c.cols.push_back( vec3(0,  (cx*(py+1)%255) / 255.0 , (cx*pz%255)/255.0 ));
+			c.cols.push_back( vec3(0,  (cx*(py+1)%255) / 255.0 , (cx*(pz+1)%255)/255.0));
+			c.cols.push_back( vec3(0,  (cx*py%255)/255.0     , (cx*(pz+1) % 255) / 255.0));
+
 		}
 
 
@@ -93,7 +111,12 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_partition, Cube &c) {
 			c.verts.push_back( vec3(from.x, from.y + py     * sy, from.z + (pz+1) * sz));
 			c.verts.push_back( vec3(from.x, from.y + (py+1) * sy, from.z + (pz+1) * sz));
 			c.verts.push_back( vec3(from.x, from.y + (py+1) * sy, from.z + pz * sz));			
-	
+
+
+			c.cols.push_back( vec3(0,  (cx*py%255)/255.0     , (cx*pz%255)/255.0 ));
+			c.cols.push_back( vec3(0,  (cx*(py+1)%255) / 255.0 , (cx*pz%255)/255.0 ));
+			c.cols.push_back( vec3(0,  (cx*(py+1)%255) / 255.0 , (cx*(pz+1)%255)/255.0));
+			c.cols.push_back( vec3(0,  (cx*py%255)/255.0     , (cx*(pz+1) % 255) / 255.0));
 		}
 
 	// 5 (top)
@@ -103,8 +126,16 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_partition, Cube &c) {
 			c.verts.push_back( vec3(from.x + px*sx,     to.y, from.z + (pz+1) * sz));
 			c.verts.push_back( vec3(from.x + (px+1)*sx, to.y, from.z + (pz+1) * sz));
 			c.verts.push_back( vec3(from.x + (px+1)*sx, to.y, from.z + pz * sz));
+
+
+			c.cols.push_back( vec3((cx*px%255)/255.0     , 0, cx*(pz%255)/255.0 ));
+			c.cols.push_back( vec3((cx*(px+1)%255) / 255.0 , 0, cx*(pz%255)/255.0 ));
+			c.cols.push_back( vec3((cx*(px+1)%255) / 255.0 , 0,(cx*(pz+1)%255)/255.0));
+			c.cols.push_back( vec3((cx*px%255)/255.0     , 0,(cx*(pz+1) % 255) / 255.0));
+
+
 		}
-	return;
+
 	//3 (bottom)
 	for (int pz = 0; pz < face_partition; pz++)
 		for (int px = 0; px < face_partition; px++) {
@@ -112,6 +143,13 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_partition, Cube &c) {
 			c.verts.push_back( vec3(from.x + px*sx,     from.y, from.z + (pz+1) * sz));
 			c.verts.push_back( vec3(from.x + (px+1)*sx, from.y, from.z + (pz+1) * sz));
 			c.verts.push_back( vec3(from.x + (px+1)*sx, from.y, from.z + pz * sz));
+			
+			c.cols.push_back( vec3((cx*px%255)/255.0     , 0, (cx*pz%255)/255.0 ));
+			c.cols.push_back( vec3((cx*(px+1)%255) / 255.0 , 0, (cx*pz%255)/255.0 ));
+			c.cols.push_back( vec3((cx*(px+1)%255) / 255.0 , 0,(cx*(pz+1)%255)/255.0));
+			c.cols.push_back( vec3((cx*px%255)/255.0     , 0,(cx*(pz+1) % 255) / 255.0));
+
+
 		}
 }
 
@@ -218,7 +256,7 @@ vec3 rotFunc1(const vec3 &v, vec3 axis, int t, bool debug = false) {
 }
 
 
-int maxtime = 1200;
+int maxtime = 1000;
 float rSpeed = 4;
 float rAccel = 0.2;
 float yRot = 0;
@@ -227,17 +265,18 @@ float rLower = 3;
 
 static void redraw(void)
 {
-	static float t=0;
+	static float t=50;
 	int a,b;
 	unsigned int currentVer;
 
 	if (t > maxtime)
-		t = 0;
+		t = 50;
 	t+=rSpeed;
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+	/* glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ); */
+	glShadeModel(GL_SMOOTH);
 
 	glPushMatrix();
 	
@@ -248,14 +287,16 @@ static void redraw(void)
 
 	for (int i = 0; i < sCube.verts.size(); i++) {
 		vec3 cv = sCube.verts[i];
+		vec3 cc = sCube.cols[i];
 		cv = rotFunc1(cv, vec3(0,1,0.2), t, (i == 0 ? true : false));
 		cv = rotFunc1(cv, vec3(0,0.2,1), t-260);
-		cv = rotFunc1(cv, vec3(0.2,0.5,0.2), t-520);
-		
+		cv = rotFunc1(cv, vec3(0.2,0.5,0.2), t-420);
 		
 		float v[3] = {cv.x, cv.y, cv.z};
 
-		float col[3] = {(i%255)/255.0,(i%255)/255.0,(i%255)/255.0};
+		/* float col[3] = {(i%255)/255.0,0,(i%128)/255.0}; */
+		float col[3] = {cc.x, cc.y, cc.z};
+		
 		if (i < 10)
 			col[0] = 1;
 
@@ -283,6 +324,7 @@ static void redraw(void)
 
 int main(int argc, char **argv) 
 {
+	srand(time(NULL));
 	glutInit(&argc,argv);
 	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
 	glutCreateWindow("Vector slime demo");
