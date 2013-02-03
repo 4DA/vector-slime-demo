@@ -29,7 +29,7 @@ struct Cube {
 int partition = 20;
 
 vec3 force_center(0,-10,0);
-const float DISPLACE_PER_UNIT = 8.9;
+const float DISPLACE_PER_UNIT = 6.9;
 
 // cube unfolding
 // looking to -Z axis
@@ -129,41 +129,71 @@ float calcDisplace(const vec3 &v) {
 	return DISPLACE_PER_UNIT*dist;
 }
 struct time_frame {
-	int from;
-	int to;
-	float dt;
+  int from;
+  int to;
+  float d1;
+  float d2;
 };
 
+/* time_frame timeline[] = { */
+/*   {0,   100, 0,   1}, */
+/*   {100, 140, 1,   0.2}, */
+/*   {140, 240, 0.2, 1}, */
+/*   {240, 260, 1,   0.1}, */
+/*   {260, 360, 0.1, 1}, */
+/* }; */
+
 time_frame timeline[] = {
-	{0,   100, 1},
-	{100, 140, 0.2},
-	{140, 240, 1},
-	{240, 260, 0.1},
-	{260, 360, 1},
+  {0,   100, 0,   1},
+  {100, 140, 1,   0.2},
+  {140, 240, 0.2, 1},
+  {240, 260, 1,   0.1},
+  {260, 360, 0.1, 1},
 };
+
 
 
 float rTime(int t) {
 	float dt;
+	int di = -1;
 	int tl = sizeof(timeline) / sizeof(time_frame);
 	
 	dt = 1;
 	for (int i = 0; i < tl; i++) {
-		if (t > timeline[i].from && t < timeline[i].to) {
-			dt = timeline[i].dt;
+		if (t >= timeline[i].from && t <= timeline[i].to) {
+			di = i;
 			break;
 		}
 	}
-	// if (dt == 5)
-	// cout << t+dt << endl;
-	return t*dt;
+
+	if (di == -1) {
+		/* cout << "out, t = " << t << endl; */
+		return t;
+	}
+
+	float len = timeline[di].to - timeline[di].from;
+	float step = (timeline[di].d2 - timeline[di].d1) / len;
+	float diff = timeline[di].d1 + (t - timeline[di].from) * step;
+
+	/* if (diff < 0) */
+	/* 	cout << "diff = " << diff << endl; */
+	diff = 1;
+	
+	return t*diff;
 }
 
 
-vec3 rotFunc1(const vec3 &v, vec3 axis, int t) {
+vec3 rotFunc1(const vec3 &v, vec3 axis, int t, bool debug = false) {
 	vec3 rv;
-
+	/* debug = false; */
 	float nt = t - calcDisplace(v);
+
+	debug = false;
+	if (debug) {
+		cout << "-------------" << endl;
+		cout << "orig t: " << t << endl;
+		cout << "t': " << nt << endl;
+	}
 	
 	if (nt < 0.01) {
 		return v;
@@ -174,14 +204,22 @@ vec3 rotFunc1(const vec3 &v, vec3 axis, int t) {
 	}
 
 	nt = rTime(nt);
+
+	if (debug) {
+		cout << "nt: " << nt << endl;
+		cout << "----------\n" << nt << endl;
+	}
+	
+	/* cout << nt << endl; */
+	
 	rv = glm::rotate(v, nt, axis);
 
 	return rv;
 }
 
 
-int maxtime = 1000;
-float rSpeed = 2;
+int maxtime = 1200;
+float rSpeed = 4;
 float rAccel = 0.2;
 float yRot = 0;
 float rUpper = 10;
@@ -207,16 +245,19 @@ static void redraw(void)
 	// glRotatef(rotateBy,0,1,0.6);
 
 	glBegin(GL_QUADS);
-		
+
 	for (int i = 0; i < sCube.verts.size(); i++) {
 		vec3 cv = sCube.verts[i];
-		cv = rotFunc1(cv, vec3(0,1,0.2), t);
-		cv = rotFunc1(cv, vec3(0,0.2,1), t-270);
-		cv = rotFunc1(cv, vec3(1,1,1), t-490);
+		cv = rotFunc1(cv, vec3(0,1,0.2), t, (i == 0 ? true : false));
+		cv = rotFunc1(cv, vec3(0,0.2,1), t-260);
+		cv = rotFunc1(cv, vec3(0.2,0.5,0.2), t-520);
 		
 		
 		float v[3] = {cv.x, cv.y, cv.z};
+
 		float col[3] = {(i%255)/255.0,(i%255)/255.0,(i%255)/255.0};
+		if (i < 10)
+			col[0] = 1;
 
 		glColor3fv(col);
 		glVertex3fv(v);
@@ -255,7 +296,8 @@ int main(int argc, char **argv)
 		       10000.0);//far clip
 	glMatrixMode(GL_MODELVIEW);
 
-	glEnable(GL_CULL_FACE);
+	// glEnable(GL_CULL_FACE);
+	glEnable (GL_DEPTH_TEST);
 
 	initCube();
 
