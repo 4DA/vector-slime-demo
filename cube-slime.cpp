@@ -29,7 +29,7 @@ struct Cube {
 int partition = 20;
 
 vec3 force_center(0,-10,0);
-const float DISPLACE_PER_UNIT = 3.3;
+const float DISPLACE_PER_UNIT = 7;
 
 // cube unfolding
 // looking to -Z axis
@@ -141,7 +141,7 @@ mat3 rotate(const float degrees, const vec3& axis)
 
 
 
-float calcDisplace(vec3 &v) {
+float calcDisplace(const vec3 &v) {
 	float dist = glm::gtx::norm::l2Norm(v, force_center);
 
 	// cout << "disp = " << dist*DISPLACE_PER_UNIT  << endl;
@@ -149,19 +149,47 @@ float calcDisplace(vec3 &v) {
 	return DISPLACE_PER_UNIT*dist;
 }
 
-float rSpeed = 2;
-float rAccel = 0.02;
+float rSpeed = 8;
+float rAccel = 0.9;
+float yRot = 0;
+
+vec3 rotFunc1(const vec3 &v, vec3 axis, int t) {
+	vec3 rv;
+	// float rotateBy = t % 360;
+	float rotateBy = t;
+	
+	float delay = calcDisplace(v);
+	rotateBy -= delay;
+
+	if (rotateBy < 0.01) 
+		rotateBy = 0;
+
+	if (rotateBy > 360)
+		rotateBy = 360;
+
+	// cout << delay << endl;
+	
+	rv = glm::rotate(v, rotateBy, axis);
+
+	return rv;
+}
 
 static void redraw(void)
 {
-	static float rotateBy=0;
+	static float t=0;
 	int a,b;
 	unsigned int currentVer;
 
-	if (rotateBy > 360)
-		rotateBy -= 360;
-	
-	rotateBy+=rSpeed;
+	// if (rotateBy > 360) {
+	// 	rotateBy -= 360;
+
+	// 	if (yRot >= 0.9)
+	// 		yRot = 0.0;
+	// 	else yRot = 0.91;
+
+	// }
+	t+=rSpeed;
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
@@ -175,7 +203,10 @@ static void redraw(void)
 		
 	for (int i = 0; i < sCube.verts.size(); i++) {
 		vec3 cv = sCube.verts[i];
-		cv = glm::rotate(cv, rotateBy-calcDisplace(cv), vec3(0,1,0.0));
+		cv = rotFunc1(cv, vec3(0,1,0.2), t);
+		cv = rotFunc1(cv, vec3(0,0.2,1), t-270);
+		cv = rotFunc1(cv, vec3(1,1,1), t-490);
+		
 		
 		float v[3] = {cv.x, cv.y, cv.z};
 		float col[3] = {(i%255)/255.0,(i%255)/255.0,(i%255)/255.0};
@@ -186,11 +217,12 @@ static void redraw(void)
 		// sCube.verts[i] = cv;
 	}
 
-	// rSpeed += rAccel;
+	rSpeed += rAccel;
 
-	if (rSpeed > 5)
+
+	if (rSpeed > 15)
 		rAccel =- rAccel;
-	if (rSpeed < 1)
+	if (rSpeed < 4)
 		rAccel =- rAccel;
 		
 	glEnd();
