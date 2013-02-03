@@ -149,10 +149,6 @@ float calcDisplace(const vec3 &v) {
 	return DISPLACE_PER_UNIT*dist;
 }
 
-float rSpeed = 8;
-float rAccel = 0.9;
-float yRot = 0;
-
 vec3 rotFunc1(const vec3 &v, vec3 axis, int t) {
 	vec3 rv;
 	// float rotateBy = t % 360;
@@ -161,11 +157,13 @@ vec3 rotFunc1(const vec3 &v, vec3 axis, int t) {
 	float delay = calcDisplace(v);
 	rotateBy -= delay;
 
-	if (rotateBy < 0.01) 
-		rotateBy = 0;
+	if (rotateBy < 0.01) {
+		return v;
+	}
 
-	if (rotateBy > 360)
-		rotateBy = 360;
+	if (rotateBy > 360) {
+		return v;
+	}
 
 	// cout << delay << endl;
 	
@@ -173,6 +171,12 @@ vec3 rotFunc1(const vec3 &v, vec3 axis, int t) {
 
 	return rv;
 }
+
+float rSpeed = 3;
+float rAccel = 0.2;
+float yRot = 0;
+float rUpper = 10;
+float rLower = 3;
 
 static void redraw(void)
 {
@@ -220,9 +224,9 @@ static void redraw(void)
 	rSpeed += rAccel;
 
 
-	if (rSpeed > 15)
+	if (rSpeed > rUpper)
 		rAccel =- rAccel;
-	if (rSpeed < 4)
+	if (rSpeed < rLower)
 		rAccel =- rAccel;
 		
 	glEnd();
