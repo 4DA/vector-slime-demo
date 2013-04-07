@@ -1,11 +1,16 @@
+#include <GL/glew.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glut.h>
 
+
 #include <vector>
+#include <algorithm>
 #include <math.h>
 #include <unistd.h>
 #include <iostream>
+#include <fstream>
+#include <cstring>
 using namespace std;
 
 #include <glm/glm.hpp>
@@ -16,19 +21,33 @@ using namespace std;
 typedef glm::mat3 mat3;
 typedef glm::vec3 vec3;
 const float pi = 3.14159265 ; // For portability across platforms
-
-using namespace std;
+GLuint cubeVertBuffer;
+int cubeVertexNum;
+GLuint theProgram;
 
 void initCube(void);
 static void redraw(void);
+GLuint initShader(GLenum eShaderType, const std::string &strShaderFile);
+GLuint CreateProgram(const std::vector<GLuint> &shaderList);
 
+GLuint basicOffsetUn;
+GLuint perspectiveMatrixUn;
+
+float perspectiveMatrix[16];
+float fFrustumScale = 1.0f; float fzNear = 0.5f; float fzFar = 90.0f;
+
+
+int maxtime = 1080;
+float rSpeed = 4;
+
+bool wireframe = false;
 
 struct Cube {
-	vector<vec3> verts;
+	vector<GLfloat> verts;
 	vector<vec3> cols;
 } sCube;
 
-int partition = 20;
+int fpartition = 20;
 
 vec3 force_center(0,-10,0);
 float DISPLACE_PER_UNIT = 7;
@@ -49,21 +68,24 @@ float DISPLACE_PER_UNIT = 7;
 // from - (front, left, bottom)
 // to - (back, right, top)
 
-void generatePolyCubeVerts(vec3 from, vec3 to, int face_partition, Cube &c) {
-	float sx = (to.x - from.x) / face_partition;
-	float sy = (to.y - from.y) / face_partition;
-	float sz = (to.z - from.z) / face_partition;
+void generatePolyCubeVerts(vec3 from, vec3 to, int face_fpartition, Cube &c) {
+	float sx = (to.x - from.x) / face_fpartition;
+	float sy = (to.y - from.y) / face_fpartition;
+	float sz = (to.z - from.z) / face_fpartition;
 	
-	int cx = 127.0 / face_partition;
+	int cx = 127.0 / face_fpartition;
 
 	//1 (front)
 
-	for (int px = 0; px < face_partition; px++)
-		for (int py = 0; py < face_partition; py++) {
-			c.verts.push_back( vec3(from.x + px * sx,     from.y + py * sy,     from.z));
-			c.verts.push_back( vec3(from.x + px * sx,     from.y + (py+1) * sy, from.z));			
-			c.verts.push_back( vec3(from.x + (px+1) * sx, from.y + (py+1) * sy, from.z));
-			c.verts.push_back( vec3(from.x + (px+1) * sx, from.y + py * sy,     from.z));
+	for (int px = 0; px < face_fpartition; px++)
+		for (int py = 0; py < face_fpartition; py++) {
+			c.verts.push_back(from.x + px * sx); c.verts.push_back(from.y + py * sy);     c.verts.push_back(from.z); c.verts.push_back(1.0);
+			c.verts.push_back(from.x + px * sx); c.verts.push_back(from.y + (py+1) * sy); c.verts.push_back(from.z); c.verts.push_back(1.0);
+			c.verts.push_back(from.x + (px+1) * sx); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(from.z); c.verts.push_back(1.0);
+
+			c.verts.push_back(from.x + px * sx); c.verts.push_back(from.y + py * sy);     c.verts.push_back(from.z); c.verts.push_back(1.0);
+			c.verts.push_back(from.x + (px+1) * sx); c.verts.push_back( from.y + py * sy);     c.verts.push_back(from.z); c.verts.push_back(1.0); 
+			c.verts.push_back(from.x + (px+1) * sx); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(from.z); c.verts.push_back(1.0);
 
 			c.cols.push_back( vec3( (cx*px % 255) / 255.0, (cx*py % 255) / 255, 0));
 			c.cols.push_back( vec3( (cx*px % 255) / 255.0, ((py+1) % 255) / 255, 0));
@@ -71,27 +93,30 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_partition, Cube &c) {
 			c.cols.push_back( vec3( (cx*(px+1) % 255) / 255.0, (cx*py % 255) / 255, 0));
 		}
 
-	//4 (back)
-	for (int px = 0; px < face_partition; px++)
-		for (int py = 0; py < face_partition; py++) {
-			c.verts.push_back( vec3(from.x + px * sx,     from.y + py * sy,     to.z));
-			c.verts.push_back( vec3(from.x + (px+1) * sx, from.y + py * sy,     to.z));
-			c.verts.push_back( vec3(from.x + (px+1) * sx, from.y + (py+1) * sy, to.z));
-			c.verts.push_back( vec3(from.x + px * sx,     from.y + (py+1) * sy, to.z));
 
-			c.cols.push_back( vec3( (cx*px % 255) / 255.0, (cx*py % 255) / 255, 0));
-			c.cols.push_back( vec3( (cx*px % 255) / 255.0, (cx*(py+1) % 255) / 255, 0));
-			c.cols.push_back( vec3( (cx*(px+1) % 255) / 255.0, (cx*(py+1) % 255) / 255, 0));
-			c.cols.push_back( vec3( (cx*(px+1) % 255) / 255.0, (cx*py % 255) / 255, 0));
+	//4 (back)
+	for (int px = 0; px < face_fpartition; px++)
+		for (int py = 0; py < face_fpartition; py++) {
+			c.verts.push_back( from.x + px * sx); c.verts.push_back(     from.y + py * sy);     c.verts.push_back(to.z); c.verts.push_back(1.0);
+			c.verts.push_back( from.x + (px+1) * sx); c.verts.push_back( from.y + py * sy);     c.verts.push_back(to.z); c.verts.push_back(1.0);
+			c.verts.push_back( from.x + (px+1) * sx); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(to.z); c.verts.push_back(1.0);
+
+			c.verts.push_back( from.x + px * sx); c.verts.push_back(     from.y + py * sy);     c.verts.push_back(to.z); c.verts.push_back(1.0);
+			c.verts.push_back( from.x + px * sx); c.verts.push_back(     from.y + (py+1) * sy); c.verts.push_back(to.z); c.verts.push_back(1.0);
+			c.verts.push_back( from.x + (px+1) * sx); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(to.z); c.verts.push_back(1.0);
+
 		}
 
 	//2 (right)
-	for (int pz = 0; pz < face_partition; pz++)
-		for (int py = 0; py < face_partition; py++) {
-			c.verts.push_back( vec3(to.x, from.y + py     * sy, from.z + pz * sz));
-			c.verts.push_back( vec3(to.x, from.y + (py+1) * sy, from.z + pz * sz));
-			c.verts.push_back( vec3(to.x, from.y + (py+1) * sy, from.z + (pz+1) * sz));
-			c.verts.push_back( vec3(to.x, from.y + py     * sy, from.z + (pz+1) * sz));
+	for (int pz = 0; pz < face_fpartition; pz++)
+		for (int py = 0; py < face_fpartition; py++) {
+			c.verts.push_back( to.x); c.verts.push_back( from.y + py     * sy); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
+			c.verts.push_back( to.x); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
+			c.verts.push_back( to.x); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
+
+			c.verts.push_back( to.x); c.verts.push_back( from.y + py     * sy); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
+			c.verts.push_back( to.x); c.verts.push_back( from.y + py     * sy); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
+			c.verts.push_back( to.x); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
 
 			c.cols.push_back( vec3(0,  (cx*py%255)/255.0     , (cx*pz%255)/255.0 ));
 			c.cols.push_back( vec3(0,  (cx*(py+1)%255) / 255.0 , (cx*pz%255)/255.0 ));
@@ -101,12 +126,15 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_partition, Cube &c) {
 
 
 	// 6 (left)
-	for (int pz = 0; pz < face_partition; pz++)
-		for (int py = 0; py < face_partition; py++) {
-			c.verts.push_back( vec3(from.x, from.y + py     * sy, from.z + pz * sz));
-			c.verts.push_back( vec3(from.x, from.y + py     * sy, from.z + (pz+1) * sz));
-			c.verts.push_back( vec3(from.x, from.y + (py+1) * sy, from.z + (pz+1) * sz));
-			c.verts.push_back( vec3(from.x, from.y + (py+1) * sy, from.z + pz * sz));			
+	for (int pz = 0; pz < face_fpartition; pz++)
+		for (int py = 0; py < face_fpartition; py++) {
+			c.verts.push_back( from.x); c.verts.push_back( from.y + py     * sy); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
+			c.verts.push_back( from.x); c.verts.push_back( from.y + py     * sy); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
+			c.verts.push_back( from.x); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(from.z + (pz+1)* sz);  c.verts.push_back(1.0);
+
+			c.verts.push_back( from.x); c.verts.push_back( from.y + py     * sy); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
+			c.verts.push_back( from.x); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
+			c.verts.push_back( from.x); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
 
 
 			c.cols.push_back( vec3(0,  (cx*py%255)/255.0     , (cx*pz%255)/255.0 ));
@@ -116,12 +144,15 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_partition, Cube &c) {
 		}
 
 	// 5 (top)
-	for (int pz = 0; pz < face_partition; pz++)
-		for (int px = 0; px < face_partition; px++) {
-			c.verts.push_back( vec3(from.x + px*sx,     to.y, from.z + pz * sz));
-			c.verts.push_back( vec3(from.x + px*sx,     to.y, from.z + (pz+1) * sz));
-			c.verts.push_back( vec3(from.x + (px+1)*sx, to.y, from.z + (pz+1) * sz));
-			c.verts.push_back( vec3(from.x + (px+1)*sx, to.y, from.z + pz * sz));
+	for (int pz = 0; pz < face_fpartition; pz++)
+		for (int px = 0; px < face_fpartition; px++) {
+			c.verts.push_back( from.x + px*sx); c.verts.push_back(     to.y); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
+			c.verts.push_back( from.x + px*sx); c.verts.push_back(     to.y); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
+			c.verts.push_back( from.x + (px+1)*sx); c.verts.push_back( to.y); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
+
+			c.verts.push_back( from.x + px*sx); c.verts.push_back(     to.y); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
+			c.verts.push_back( from.x + (px+1)*sx); c.verts.push_back( to.y); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
+			c.verts.push_back( from.x + (px+1)*sx); c.verts.push_back( to.y); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
 
 
 			c.cols.push_back( vec3((cx*px%255)/255.0     , 0, cx*(pz%255)/255.0 ));
@@ -131,12 +162,15 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_partition, Cube &c) {
 		}
 
 	//3 (bottom)
-	for (int pz = 0; pz < face_partition; pz++)
-		for (int px = 0; px < face_partition; px++) {
-			c.verts.push_back( vec3(from.x + px*sx,     from.y, from.z + pz * sz));
-			c.verts.push_back( vec3(from.x + px*sx,     from.y, from.z + (pz+1) * sz));
-			c.verts.push_back( vec3(from.x + (px+1)*sx, from.y, from.z + (pz+1) * sz));
-			c.verts.push_back( vec3(from.x + (px+1)*sx, from.y, from.z + pz * sz));
+	for (int pz = 0; pz < face_fpartition; pz++)
+		for (int px = 0; px < face_fpartition; px++) {
+			c.verts.push_back( from.x + px*sx); c.verts.push_back(     from.y); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
+			c.verts.push_back( from.x + px*sx); c.verts.push_back(     from.y); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
+			c.verts.push_back( from.x + (px+1)*sx); c.verts.push_back( from.y); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
+
+			c.verts.push_back( from.x + px*sx); c.verts.push_back(     from.y); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
+			c.verts.push_back( from.x + (px+1)*sx); c.verts.push_back( from.y); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
+			c.verts.push_back( from.x + (px+1)*sx); c.verts.push_back( from.y); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
 			
 			c.cols.push_back( vec3((cx*px%255)/255.0     , 0, (cx*pz%255)/255.0 ));
 			c.cols.push_back( vec3((cx*(px+1)%255) / 255.0 , 0, (cx*pz%255)/255.0 ));
@@ -147,9 +181,106 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_partition, Cube &c) {
 
 void initCube(void)
 {
-	generatePolyCubeVerts(vec3(-10,-10,-10), vec3(10,10,10), partition, sCube);
+	generatePolyCubeVerts(vec3(-10,-10,-10), vec3(10,10,10), fpartition, sCube);
+
+	cubeVertexNum = sCube.verts.size();
+
+	glGenBuffers(1, &cubeVertBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, cubeVertBuffer);
+	glBufferData(GL_ARRAY_BUFFER, cubeVertexNum * sizeof(float), &sCube.verts[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	std::vector<GLuint> shaderList;
+	 
+	shaderList.push_back(initShader(GL_VERTEX_SHADER, "cube.vert"));
+	shaderList.push_back(initShader(GL_FRAGMENT_SHADER, "cube.frag"));
+	theProgram = CreateProgram(shaderList);
+
+	std::for_each(shaderList.begin(), shaderList.end(), glDeleteShader);
+
+	basicOffsetUn = glGetUniformLocation(theProgram, "basic_offset");
+	perspectiveMatrixUn = glGetUniformLocation(theProgram, "perspectiveMatrix");
+	
+	memset(perspectiveMatrix, 0, sizeof(float) * 16);
+	perspectiveMatrix[0] = fFrustumScale;
+	perspectiveMatrix[5] = fFrustumScale;
+	perspectiveMatrix[10] = (fzFar + fzNear) / (fzNear - fzFar);
+	perspectiveMatrix[14] = (2 * fzFar * fzNear) / (fzNear - fzFar);
+	perspectiveMatrix[11] = -1.0f;
 }
 
+GLuint CreateProgram(const std::vector<GLuint> &shaderList)
+{
+    GLuint program = glCreateProgram();
+    
+    for(size_t iLoop = 0; iLoop < shaderList.size(); iLoop++)
+    	glAttachShader(program, shaderList[iLoop]);
+    
+    glLinkProgram(program);
+    
+    GLint status;
+    glGetProgramiv (program, GL_LINK_STATUS, &status);
+    if (status == GL_FALSE)
+    {
+        GLint infoLogLength;
+        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &infoLogLength);
+        
+        GLchar *strInfoLog = new GLchar[infoLogLength + 1];
+        glGetProgramInfoLog(program, infoLogLength, NULL, strInfoLog);
+        cerr << "Linker failure: " << strInfoLog;
+        delete[] strInfoLog;
+    }
+    
+    for(size_t iLoop = 0; iLoop < shaderList.size(); iLoop++)
+        glDetachShader(program, shaderList[iLoop]);
+
+    return program;
+}
+
+GLuint initShader(GLenum eShaderType, const std::string &strShaderFile)
+{
+	GLuint shader = glCreateShader(eShaderType);
+	
+	ifstream myReadFile;
+	myReadFile.open(strShaderFile.c_str());
+	string strFileData;
+	string fileLine;
+	if (myReadFile.is_open()) {
+		while (!myReadFile.eof()) {
+			getline(myReadFile, fileLine);
+			strFileData.append(fileLine);
+			strFileData.append("\n");
+		}
+	}
+	myReadFile.close();
+
+	const char *src_data = strFileData.c_str();
+	glShaderSource(shader, 1, &src_data, NULL);
+    
+	glCompileShader(shader);
+    
+	GLint status;
+	glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
+	if (status == GL_FALSE) {
+		GLint infoLogLength;
+		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLogLength);
+        
+		GLchar *strInfoLog = new GLchar[infoLogLength + 1];
+		glGetShaderInfoLog(shader, infoLogLength, NULL, strInfoLog);
+        
+		const char *strShaderType = NULL;
+		switch(eShaderType) {
+		case GL_VERTEX_SHADER: strShaderType = "vertex"; break;
+		case GL_GEOMETRY_SHADER: strShaderType = "geometry"; break;
+		case GL_FRAGMENT_SHADER: strShaderType = "fragment"; break;
+		}
+        
+		cerr << "Compile failure in " <<  strShaderType << " shader: " << strInfoLog << endl;
+		delete[] strInfoLog;
+	}
+
+	return shader;
+}
 
 float calcDisplace(const vec3 &v) {
 	float dist = glm::gtx::norm::l2Norm(v, force_center);
@@ -165,14 +296,6 @@ struct time_frame {
   float d2;
 };
 
-/* time_frame timeline[] = { */
-/*   {0,   100, 0,   1}, */
-/*   {100, 140, 1,   0.2}, */
-/*   {140, 240, 0.2, 1}, */
-/*   {240, 260, 1,   0.1}, */
-/*   {260, 360, 0.1, 1}, */
-/* }; */
-
 time_frame timeline[] = {
   {0,   100, 0,   1},
   {100, 140, 1,   0.2},
@@ -180,38 +303,6 @@ time_frame timeline[] = {
   {240, 260, 1,   0.1},
   {260, 360, 0.1, 1},
 };
-
-
-
-/* float rTime(int t) { */
-/* 	float dt; */
-/* 	int di = -1; */
-/* 	int tl = sizeof(timeline) / sizeof(time_frame); */
-	
-/* 	dt = 1; */
-/* 	for (int i = 0; i < tl; i++) { */
-/* 		if (t >= timeline[i].from && t <= timeline[i].to) { */
-/* 			di = i; */
-/* 			break; */
-/* 		} */
-/* 	} */
-
-/* 	if (di == -1) { */
-/* 		/\* cout << "out, t = " << t << endl; *\/ */
-/* 		return t; */
-/* 	} */
-
-/* 	float len = timeline[di].to - timeline[di].from; */
-/* 	float step = (timeline[di].d2 - timeline[di].d1) / len; */
-/* 	float diff = timeline[di].d1 + (t - timeline[di].from) * step; */
-
-/* 	/\* if (diff < 0) *\/ */
-/* 	/\* 	cout << "diff = " << diff << endl; *\/ */
-/* 	diff = 1; */
-	
-/* 	return t*diff; */
-/* } */
-
 
 vec3 rotFunc1(const vec3 &v, vec3 axis, int t, bool debug = false) {
 	vec3 rv;
@@ -249,10 +340,6 @@ vec3 rotFunc1(const vec3 &v, vec3 axis, int t, bool debug = false) {
 
 
 
-int maxtime = 1080;
-float rSpeed = 4;
-
-bool wireframe = false;
 
 static void redraw(void)
 {
@@ -267,43 +354,53 @@ static void redraw(void)
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
 	if (wireframe)
 		glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 	
 	glShadeModel(GL_SMOOTH);
 
-	glPushMatrix();
+	glUseProgram(theProgram);
 	
-	glTranslatef(0,0,-50);
-	// glRotatef(rotateBy,0,1,0.6);
+	glBindBuffer(GL_ARRAY_BUFFER, cubeVertBuffer);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
 
-	glBegin(GL_QUADS);
+	glUniform4f(basicOffsetUn, 0.0f, -6.0f, -30.0f, 0);
 
-	for (int i = 0; i < sCube.verts.size(); i++) {
-		vec3 cv = sCube.verts[i];
-		vec3 cc = sCube.cols[i];
-		cv = rotFunc1(cv, vec3(0,-1,-0.2), t);
-		cv = rotFunc1(cv, vec3(0,-0.5,-0.4), t-350);
-		cv = rotFunc1(cv, vec3(0.4,-0.8,0.0), t-620);
+	glDrawArrays(GL_TRIANGLES, 0, cubeVertexNum);
 
-		float v[3] = {cv.x, cv.y, cv.z};
-		float col[3] = {cc.x, cc.y, cc.z};
+	// glBegin(GL_QUADS);
+
+	// for (int i = 0; i < sCube.verts.size(); i++) {
+	// 	vec3 cv = sCube.verts[i];
+	// 	vec3 cc = sCube.cols[i];
+	// 	cv = rotFunc1(cv, vec3(0,-1,-0.2), t);
+	// 	cv = rotFunc1(cv, vec3(0,-0.5,-0.4), t-350);
+	// 	cv = rotFunc1(cv, vec3(0.4,-0.8,0.0), t-620);
+
+	// 	float v[3] = {cv.x, cv.y, cv.z};
+	// 	float col[3] = {cc.x, cc.y, cc.z};
 		
-		glColor3fv(col);
-		glVertex3fv(v);
-	}
+	// 	glColor3fv(col);
+	// 	glVertex3fv(v);
+	// }
 	
-	glEnd();
-	glPopMatrix();
+	// glEnd();
+
+
+	glDisableVertexAttribArray(0);
+	glUseProgram(0);
 	
 	glutSwapBuffers();
 	glutPostRedisplay();
 }
 
 void print_usage() {
-	cout << "Usage: cube-slime [-w] [-p partition_number] [-s speed] [-l latency] -h\n"
+	cout << "Usage: cube-slime [-w] [-p fpartition_number] [-s speed] [-l latency] -h\n"
 	     "\t-w: use wireframe mode (default: off)\n"
-		"\t-p: cube face partition count (default: 20)\n"
+		"\t-p: cube face fpartition count (default: 20)\n"
 		"\t-s: rotation speed (default: 4)\n"
 		"\t-l: vertices inertion (default: 7)\n"
 		"\t-h: print this help message and exit\n";
@@ -318,8 +415,8 @@ void init(int argc, char **argv) {
 			break;
 			
 		case 'p':
-			partition = atoi(optarg);
-			if (partition < 0) {
+			fpartition = atoi(optarg);
+			if (fpartition < 0) {
 				cout << "bad partition number" << endl;
 				exit(EXIT_FAILURE);
 			}
@@ -349,26 +446,53 @@ void init(int argc, char **argv) {
 	};
 }
 
+void Keyboard(unsigned char key, int x, int y)
+{
+  switch (key)
+  {
+  case 27:             // ESCAPE key
+  case 'q':	  
+	  exit (0);
+	  break;
+  }
+}
+
+void reshape (int w, int h)
+{
+	perspectiveMatrix[0] = fFrustumScale / (w / (float)h);
+	perspectiveMatrix[5] = fFrustumScale;
+
+	glUseProgram(theProgram);
+	glUniformMatrix4fv(perspectiveMatrixUn, 1, GL_FALSE, perspectiveMatrix);
+	glUseProgram(0);
+	
+	glViewport(0, 0, (GLsizei) w, (GLsizei) w);
+}
+
+
 int main(int argc, char **argv) 
 {
 	init (argc, argv);
-	
+
 	glutInit(&argc,argv);
 	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
 	glutCreateWindow("Vector slime demo");
+	glutKeyboardFunc (Keyboard);
+	glutDisplayFunc(redraw);
+	glutReshapeFunc(reshape);
 
-	glutDisplayFunc(redraw);	
-
-	glMatrixMode(GL_PROJECTION);						//hello
-	gluPerspective(45, //view angle
-		       1.0,	//aspect ratio
-		       10.0, //near clip
-		       10000.0);//far clip
-	glMatrixMode(GL_MODELVIEW);
-
-	// glEnable(GL_CULL_FACE);
+	glEnable(GL_CULL_FACE);
 	glEnable (GL_DEPTH_TEST);
 
+	GLenum err = glewInit();
+	if (GLEW_OK != err) {
+		/* Problem: glewInit failed, something is seriously wrong. */
+		cerr << "Error: %s\n" << glewGetErrorString(err) << endl;
+		exit(EXIT_FAILURE);
+	}
+	  
+	
+	glewInit();
 	initCube();
 
 	glutMainLoop();
