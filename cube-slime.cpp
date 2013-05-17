@@ -38,6 +38,7 @@ GLuint cubeVertBuffer;
 GLuint cubeVAO;
 int cubeVertexNum;
 GLuint theProgram;
+GLuint cubeIndexBO;
 
 void initCube(void);
 static void redraw(void);
@@ -91,16 +92,16 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_fpartition, Cube &c) {
 	int cx = 127.0 / face_fpartition;
 
 	//indices
-	for (int oft, triag = 0; triag < 2 * 2 * (sx*sy + sx*sz + sz*sy); triag+=2) {
-		oft = 2 * triag * 3;
+	for (int oft, quad = 0; quad < face_fpartition * face_fpartition * 6; quad++) {
+		oft = quad * 4;
 		
 		c.ids.push_back (oft);
 		c.ids.push_back (oft+3);
 		c.ids.push_back (oft+2);
 
 		c.ids.push_back (oft);
-		c.ids.push_back (oft+1);
 		c.ids.push_back (oft+2);
+		c.ids.push_back (oft+1);
 	}
 
 	//1 (front)
@@ -163,19 +164,28 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_fpartition, Cube &c) {
 		}
 }
 
-void initCube(void)
-{
-	generatePolyCubeVerts(vec3(-10,-10,-10), vec3(10,10,10), fpartition, sCube);
-
+void initVertexBuffer() {
 	cubeVertexNum = sCube.verts.size();
-
-	glGenVertexArrays(1, &cubeVAO);
-	glBindVertexArray(cubeVAO);
-
 	glGenBuffers(1, &cubeVertBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, cubeVertBuffer);
 	glBufferData(GL_ARRAY_BUFFER, cubeVertexNum * sizeof(float), &sCube.verts[0], GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glGenBuffers(1, &cubeIndexBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeIndexBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sCube.ids.size() * sizeof(int), &sCube.ids[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+}
+
+void initCube(void)
+{
+	generatePolyCubeVerts(vec3(-10,-10,-10), vec3(10,10,10), fpartition, sCube);
+	initVertexBuffer();
+
+	glGenVertexArrays(1, &cubeVAO);
+	glBindVertexArray(cubeVAO);
+
 
 	std::vector<GLuint> shaderList;
 	 
@@ -232,10 +242,12 @@ GLuint initShader(GLenum eShaderType, const std::string &strShaderFile)
 	myReadFile.open(strShaderFile.c_str());
 	string strFileData;
 	string fileLine;
+	char buf[256];
 	if (myReadFile.is_open()) {
 		while (!myReadFile.eof()) {
-			getline(myReadFile, fileLine);
-			strFileData.append(fileLine);
+			//getline(myReadFile, fileLine);
+			myReadFile.getline(buf, 256);
+			strFileData.append(buf);
 			strFileData.append("\n");
 		}
 	}
@@ -325,16 +337,13 @@ vec3 rotFunc1(const vec3 &v, vec3 axis, int t, bool debug = false) {
 	return rv;
 }
 
-
-
-
 static void redraw(void)
 {
 	static float t=50;
 	int a,b;
 	unsigned int currentVer;
 
-	if (t > maxtime)
+	if (t > maxtime) 
 		t = 50;
 	
 	t+=rSpeed;
@@ -356,7 +365,10 @@ static void redraw(void)
 
 	glUniform4f(basicOffsetUn, 0.0f, -6.0f, -30.0f, 0);
 
-	glDrawArrays(GL_TRIANGLES, 0, cubeVertexNum);
+	// glDrawArrays(GL_TRIANGLES, 0, cubeVertexNum);
+	
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeIndexBO);
+	glDrawElements(GL_TRIANGLES, sCube.ids.size(), GL_UNSIGNED_INT, NULL);
 
 	// glBegin(GL_QUADS);
 
@@ -471,17 +483,17 @@ int main(int argc, char **argv)
 	glEnable(GL_CULL_FACE);
 	glEnable (GL_DEPTH_TEST);
 
+	
 	GLenum err = glewInit();
 	if (GLEW_OK != err) {
 		/* Problem: glewInit failed, something is seriously wrong. */
 		cerr << "Error: %s\n" << glewGetErrorString(err) << endl;
 		exit(EXIT_FAILURE);
 	}
-	  
-	
+   
 	glewInit();
 	initCube();
-
+	
 	glutMainLoop();
 
 	return 0; 
