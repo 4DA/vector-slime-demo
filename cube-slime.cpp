@@ -1,17 +1,30 @@
 #include <GL/glew.h>
+#include <GL/glext.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
-#include <GL/glut.h>
 
+#ifdef _WIN32
+#define _CRT_TERMINATE_DEFINED
+void __cdecl abort(void);
+#include <GL/glut.h>
+#include "getopt.h"
+#endif
+
+#ifndef _WIN32
+#include <unistd.h>
+#include <GL/glut.h>
+#endif
 
 #include <vector>
 #include <algorithm>
 #include <math.h>
-#include <unistd.h>
+
 #include <iostream>
+#include <istream>
 #include <fstream>
 #include <cstring>
 using namespace std;
+
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
