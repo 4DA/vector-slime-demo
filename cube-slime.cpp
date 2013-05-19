@@ -47,6 +47,10 @@ GLuint CreateProgram(const std::vector<GLuint> &shaderList);
 
 GLuint basicOffsetUn;
 GLuint perspectiveMatrixUn;
+GLuint tUniform;
+GLuint magnitudeUniform;
+GLuint fcenterUniform;
+GLuint axisUniform;
 
 float perspectiveMatrix[16];
 float fFrustumScale = 1.0f; float fzNear = 0.5f; float fzFar = 90.0f;
@@ -197,6 +201,11 @@ void initCube(void)
 
 	basicOffsetUn = glGetUniformLocation(theProgram, "basic_offset");
 	perspectiveMatrixUn = glGetUniformLocation(theProgram, "perspectiveMatrix");
+
+	tUniform = glGetUniformLocation(theProgram, "T");
+	magnitudeUniform = glGetUniformLocation(theProgram, "magnitude");
+	fcenterUniform = glGetUniformLocation(theProgram, "force_center");
+	axisUniform = glGetUniformLocation(theProgram, "axis");
 	
 	memset(perspectiveMatrix, 0, sizeof(float) * 16);
 	perspectiveMatrix[0] = fFrustumScale;
@@ -337,6 +346,7 @@ vec3 rotFunc1(const vec3 &v, vec3 axis, int t, bool debug = false) {
 	return rv;
 }
 
+
 static void redraw(void)
 {
 	static float t=50;
@@ -364,6 +374,14 @@ static void redraw(void)
 	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
 
 	glUniform4f(basicOffsetUn, 0.0f, -6.0f, -30.0f, 0);
+
+	glUniform1f(tUniform, t);
+	glUniform1f(magnitudeUniform, DISPLACE_PER_UNIT);
+
+	glUniform4f(fcenterUniform,
+		    force_center.x, force_center.y, force_center.z, 1.0);
+
+	glUniform3f(axisUniform, 0, -1, -0.2);
 
 	// glDrawArrays(GL_TRIANGLES, 0, cubeVertexNum);
 	
