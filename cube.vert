@@ -7,7 +7,7 @@ uniform mat4 perspectiveMatrix;
 uniform vec4 force_center;
 uniform float magnitude;
 uniform float T;
-uniform vec3 axis;
+
 
 mat4 rotationMatrix(vec3 _axis, float angle);
 mat4 translationMatrix(vec4 tv);
@@ -16,10 +16,21 @@ void main()
 {
 	float displace = length(position - force_center) * magnitude;
 	float nt = T - displace;
+	float nt2 = T - 350 - displace;
+	float nt3 = T - 620 - displace;
+	nt = clamp(nt, 0.01, 720);
+	nt2 = clamp(nt2, 0.01, 720);
+	nt3 = clamp(nt3, 0.01, 720);
+
+	vec3 axis = vec3(0,-1,-0.2);
+	vec3 axis2 = vec3(0.1,-0.2,-0.8);
+	vec3 axis3 = vec3(0.4,-0.8, 0.0);
 	mat4 rot = rotationMatrix(axis, nt * 3.14 / 360.0);
+	mat4 rot2 = rotationMatrix(axis2, nt2 * 3.14 / 360.0);
+	mat4 rot3 = rotationMatrix(axis3, nt3 * 3.14 / 360.0);
 	mat4 tr = translationMatrix(basic_offset);
 	
-	gl_Position =  position * rot * tr * perspectiveMatrix;
+	gl_Position =  position * rot3 * rot2 * rot * tr * perspectiveMatrix;
 }
 
 mat4 rotationMatrix(vec3 _axis, float angle)

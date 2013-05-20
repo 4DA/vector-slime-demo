@@ -56,7 +56,7 @@ float perspectiveMatrix[16];
 float fFrustumScale = 1.0f; float fzNear = 0.5f; float fzFar = 90.0f;
 
 
-int maxtime = 1080;
+int maxtime = 1500;
 float rSpeed = 4;
 
 bool wireframe = false;
@@ -203,7 +203,7 @@ void initCube(void)
 	tUniform = glGetUniformLocation(theProgram, "T");
 	magnitudeUniform = glGetUniformLocation(theProgram, "magnitude");
 	fcenterUniform = glGetUniformLocation(theProgram, "force_center");
-	axisUniform = glGetUniformLocation(theProgram, "axis");
+	// axisUniform = glGetUniformLocation(theProgram, "axis");
 	
 	memset(perspectiveMatrix, 0, sizeof(float) * 16);
 	perspectiveMatrix[0] = fFrustumScale;
@@ -379,32 +379,8 @@ static void redraw(void)
 	glUniform4f(fcenterUniform,
 		    force_center.x, force_center.y, force_center.z, 1.0);
 
-	glUniform3f(axisUniform, 0, -1, -0.2);
-	// glUniform3f(axisUniform, 	0,-0.5,-0.4);
-
-	// glDrawArrays(GL_TRIANGLES, 0, cubeVertexNum);
-	
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeIndexBO);
 	glDrawElements(GL_TRIANGLES, sCube.ids.size(), GL_UNSIGNED_INT, NULL);
-
-	// glBegin(GL_QUADS);
-
-	// for (int i = 0; i < sCube.verts.size(); i++) {
-	// 	vec3 cv = sCube.verts[i];
-	// 	vec3 cc = sCube.cols[i];
-	// 	cv = rotFunc1(cv, vec3(0,-1,-0.2), t);
-	// 	cv = rotFunc1(cv, vec3(0,-0.5,-0.4), t-350);
-	// 	cv = rotFunc1(cv, vec3(0.4,-0.8,0.0), t-620);
-
-	// 	float v[3] = {cv.x, cv.y, cv.z};
-	// 	float col[3] = {cc.x, cc.y, cc.z};
-		
-	// 	glColor3fv(col);
-	// 	glVertex3fv(v);
-	// }
-	
-	// glEnd();
-
 
 	glDisableVertexAttribArray(0);
 	glUseProgram(0);
