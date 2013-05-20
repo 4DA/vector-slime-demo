@@ -96,7 +96,7 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_fpartition, Cube &c) {
 	int cx = 127.0 / face_fpartition;
 
 	//indices
-	for (int oft, quad = 0; quad < face_fpartition * face_fpartition * 6; quad++) {
+	for (int oft, quad = 0; quad < face_fpartition * face_fpartition * 6 ; quad++) {
 		oft = quad * 4;
 		
 		c.ids.push_back (oft);
@@ -112,25 +112,23 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_fpartition, Cube &c) {
 
 	for (int px = 0; px < face_fpartition; px++)
 		for (int py = 0; py < face_fpartition; py++) {
-			c.verts.push_back(from.x + px * sx); c.verts.push_back(from.y + py * sy);     c.verts.push_back(from.z); c.verts.push_back(1.0);
-			c.verts.push_back(from.x + px * sx); c.verts.push_back(from.y + (py+1) * sy); c.verts.push_back(from.z); c.verts.push_back(1.0);
-			c.verts.push_back(from.x + (px+1) * sx); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(from.z); c.verts.push_back(1.0);
-			c.verts.push_back(from.x + (px+1) * sx); c.verts.push_back( from.y + py * sy);     c.verts.push_back(from.z); c.verts.push_back(1.0);
-		}
 
+			c.verts.push_back(from.x + px * sx); c.verts.push_back(from.y + (py+1) * sy); c.verts.push_back(from.z); c.verts.push_back(1.0);
+			c.verts.push_back(from.x + px * sx); c.verts.push_back(from.y + py * sy);     c.verts.push_back(from.z); c.verts.push_back(1.0);
+			c.verts.push_back(from.x + (px+1) * sx); c.verts.push_back( from.y + py * sy);     c.verts.push_back(from.z); c.verts.push_back(1.0);
+			c.verts.push_back(from.x + (px+1) * sx); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(from.z); c.verts.push_back(1.0);
+		}
 
 	//4 (back)
 	for (int px = 0; px < face_fpartition; px++)
 		for (int py = 0; py < face_fpartition; py++) {
-			
 			c.verts.push_back( from.x + px * sx); c.verts.push_back(     from.y + py * sy);     c.verts.push_back(to.z); c.verts.push_back(1.0);
 			c.verts.push_back( from.x + px * sx); c.verts.push_back(     from.y + (py+1) * sy); c.verts.push_back(to.z); c.verts.push_back(1.0);
 			c.verts.push_back( from.x + (px+1) * sx); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(to.z); c.verts.push_back(1.0);
 			c.verts.push_back( from.x + (px+1) * sx); c.verts.push_back( from.y + py * sy);     c.verts.push_back(to.z); c.verts.push_back(1.0);
-
 		}
 
-	//2 (right)
+ 	// 2 (right)
 	for (int pz = 0; pz < face_fpartition; pz++)
 		for (int py = 0; py < face_fpartition; py++) {
 			c.verts.push_back( to.x); c.verts.push_back( from.y + py     * sy); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
@@ -140,25 +138,25 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_fpartition, Cube &c) {
 		}
 
 
-	// 6 (left)
+	// // 6 (left)
 	for (int pz = 0; pz < face_fpartition; pz++)
 		for (int py = 0; py < face_fpartition; py++) {
-			c.verts.push_back( from.x); c.verts.push_back( from.y + py     * sy); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
 			c.verts.push_back( from.x); c.verts.push_back( from.y + py     * sy); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
-			c.verts.push_back( from.x); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(from.z + (pz+1)* sz);  c.verts.push_back(1.0);
+			c.verts.push_back( from.x); c.verts.push_back( from.y + py     * sy); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
 			c.verts.push_back( from.x); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
+			c.verts.push_back( from.x); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(from.z + (pz+1)* sz);  c.verts.push_back(1.0);
 		}
 
 	// 5 (top)
 	for (int pz = 0; pz < face_fpartition; pz++)
 		for (int px = 0; px < face_fpartition; px++) {
-			c.verts.push_back( from.x + px*sx); c.verts.push_back(     to.y); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
 			c.verts.push_back( from.x + px*sx); c.verts.push_back(     to.y); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
-			c.verts.push_back( from.x + (px+1)*sx); c.verts.push_back( to.y); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
+			c.verts.push_back( from.x + px*sx); c.verts.push_back(     to.y); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
 			c.verts.push_back( from.x + (px+1)*sx); c.verts.push_back( to.y); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
+			c.verts.push_back( from.x + (px+1)*sx); c.verts.push_back( to.y); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
 		}
 
-	//3 (bottom)
+	// //3 (bottom)
 	for (int pz = 0; pz < face_fpartition; pz++)
 		for (int px = 0; px < face_fpartition; px++) {
 			c.verts.push_back( from.x + px*sx); c.verts.push_back(     from.y); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
@@ -382,6 +380,7 @@ static void redraw(void)
 		    force_center.x, force_center.y, force_center.z, 1.0);
 
 	glUniform3f(axisUniform, 0, -1, -0.2);
+	// glUniform3f(axisUniform, 	0,-0.5,-0.4);
 
 	// glDrawArrays(GL_TRIANGLES, 0, cubeVertexNum);
 	
