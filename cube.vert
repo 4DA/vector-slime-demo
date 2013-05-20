@@ -23,7 +23,7 @@ void main()
 	nt3 = clamp(nt3, 0.01, 720);
 
 	vec3 axis = vec3(0,-1,-0.2);
-	vec3 axis2 = vec3(0.1,-0.2,-0.8);
+	vec3 axis2 = vec3(0.0, 0.5,-0.8);
 	vec3 axis3 = vec3(0.4,-0.8, 0.0);
 	mat4 rot = rotationMatrix(axis, nt * 3.14 / 360.0);
 	mat4 rot2 = rotationMatrix(axis2, nt2 * 3.14 / 360.0);
