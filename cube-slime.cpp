@@ -215,30 +215,30 @@ void initCube(void)
 
 GLuint CreateProgram(const std::vector<GLuint> &shaderList)
 {
-    GLuint program = glCreateProgram();
+	GLuint program = glCreateProgram();
     
-    for(size_t iLoop = 0; iLoop < shaderList.size(); iLoop++)
-    	glAttachShader(program, shaderList[iLoop]);
+	for(size_t iLoop = 0; iLoop < shaderList.size(); iLoop++)
+		glAttachShader(program, shaderList[iLoop]);
     
-    glLinkProgram(program);
+	glLinkProgram(program);
     
-    GLint status;
-    glGetProgramiv (program, GL_LINK_STATUS, &status);
-    if (status == GL_FALSE)
-    {
-        GLint infoLogLength;
-        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &infoLogLength);
+	GLint status;
+	glGetProgramiv (program, GL_LINK_STATUS, &status);
+	if (status == GL_FALSE)
+	{
+		GLint infoLogLength;
+		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &infoLogLength);
         
-        GLchar *strInfoLog = new GLchar[infoLogLength + 1];
-        glGetProgramInfoLog(program, infoLogLength, NULL, strInfoLog);
-        cerr << "Linker failure: " << strInfoLog;
-        delete[] strInfoLog;
-    }
+		GLchar *strInfoLog = new GLchar[infoLogLength + 1];
+		glGetProgramInfoLog(program, infoLogLength, NULL, strInfoLog);
+		cerr << "Linker failure: " << strInfoLog;
+		delete[] strInfoLog;
+	}
     
-    for(size_t iLoop = 0; iLoop < shaderList.size(); iLoop++)
-        glDetachShader(program, shaderList[iLoop]);
+	for(size_t iLoop = 0; iLoop < shaderList.size(); iLoop++)
+		glDetachShader(program, shaderList[iLoop]);
 
-    return program;
+	return program;
 }
 
 GLuint initShader(GLenum eShaderType, const std::string &strShaderFile)
@@ -288,63 +288,6 @@ GLuint initShader(GLenum eShaderType, const std::string &strShaderFile)
 	return shader;
 }
 
-float calcDisplace(const vec3 &v) {
-	float dist = glm::gtx::norm::l2Norm(v, force_center);
-
-	// cout << "disp = " << dist*DISPLACE_PER_UNIT  << endl;;
-	// return 0;
-	return DISPLACE_PER_UNIT*dist;
-}
-struct time_frame {
-  int from;
-  int to;
-  float d1;
-  float d2;
-};
-
-time_frame timeline[] = {
-  {0,   100, 0,   1},
-  {100, 140, 1,   0.2},
-  {140, 240, 0.2, 1},
-  {240, 260, 1,   0.1},
-  {260, 360, 0.1, 1},
-};
-
-vec3 rotFunc1(const vec3 &v, vec3 axis, int t, bool debug = false) {
-	vec3 rv;
-	/* debug = false; */
-	float nt = t - calcDisplace(v);
-
-	debug = false;
-	if (debug) {
-		cout << "-------------" << endl;
-		cout << "orig t: " << t << endl;
-		cout << "t': " << nt << endl;
-	}
-	
-	if (nt < 0.01) {
-		return v;
-	}
-
-	if (nt > 360) {
-		return v;
-	}
-
-	/* nt = rTime(nt); */
-
-	if (debug) {
-		cout << "nt: " << nt << endl;
-		cout << "----------\n" << nt << endl;
-	}
-	
-	/* cout << nt << endl; */
-	
-	rv = glm::rotate(v, nt, axis);
-
-	return rv;
-}
-
-
 static void redraw(void)
 {
 	static float t=50;
@@ -391,7 +334,7 @@ static void redraw(void)
 
 void print_usage() {
 	cout << "Usage: cube-slime [-w] [-p fpartition_number] [-s speed] [-l latency] -h\n"
-	     "\t-w: use wireframe mode (default: off)\n"
+		"\t-w: use wireframe mode (default: off)\n"
 		"\t-p: cube face fpartition count (default: 20)\n"
 		"\t-s: rotation speed (default: 4)\n"
 		"\t-l: vertices inertion (default: 7)\n"
@@ -440,13 +383,13 @@ void init(int argc, char **argv) {
 
 void Keyboard(unsigned char key, int x, int y)
 {
-  switch (key)
-  {
-  case 27:             // ESCAPE key
-  case 'q':	  
-	  exit (0);
-	  break;
-  }
+	switch (key)
+	{
+	case 27:             // ESCAPE key
+	case 'q':	  
+		exit (0);
+		break;
+	}
 }
 
 void reshape (int w, int h)
