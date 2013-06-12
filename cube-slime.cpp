@@ -3,12 +3,12 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 
-#ifdef _WIN32
-#define _CRT_TERMINATE_DEFINED
-void __cdecl abort(void);
+// #ifdef _WIN32
+// #define _CRT_TERMINATE_DEFINED
+// void __cdecl abort(void);
 #include <GL/glut.h>
 #include "getopt.h"
-#endif
+// #endif
 
 #ifndef _WIN32
 #include <unistd.h>
