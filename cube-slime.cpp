@@ -31,10 +31,15 @@ using namespace std;
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtx/norm.hpp>
 
+//light stuff
+float light_direction[4] = {0, -0.5, -0.7, 0.0};
+//----------
+
 typedef glm::mat3 mat3;
 typedef glm::vec3 vec3;
 const float pi = 3.14159265 ; // For portability across platforms
 GLuint cubeVertBuffer;
+GLuint cubeNormalBuffer;
 GLuint cubeVAO;
 int cubeVertexNum;
 GLuint theProgram;
@@ -51,6 +56,8 @@ GLuint tUniform;
 GLuint magnitudeUniform;
 GLuint fcenterUniform;
 GLuint axisUniform;
+GLuint lightDirUniform;
+GLuint lightIntensityUniform;
 
 float perspectiveMatrix[16];
 float fFrustumScale = 1.0f; float fzNear = 0.5f; float fzFar = 90.0f;
@@ -65,6 +72,7 @@ struct Cube {
 	vector<GLfloat> verts;
 	vector<int> ids;
 	vector<vec3> cols;
+	vector<float> normals;
 } sCube;
 
 int fpartition = 20;
@@ -118,6 +126,10 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_fpartition, Cube &c) {
 			c.verts.push_back(from.x + (px+1) * sx); c.verts.push_back( from.y + py * sy);     c.verts.push_back(from.z); c.verts.push_back(1.0);
 			c.verts.push_back(from.x + (px+1) * sx); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(from.z); c.verts.push_back(1.0);
 		}
+	
+	for (int vid = 0; vid < face_fpartition * face_fpartition * 4; vid++) {
+		c.normals.push_back(0.0); c.normals.push_back(0.0); c.normals.push_back(-1.0); c.normals.push_back(0.0);
+	}
 
 	//4 (back)
 	for (int px = 0; px < face_fpartition; px++)
@@ -126,8 +138,14 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_fpartition, Cube &c) {
 			c.verts.push_back( from.x + px * sx); c.verts.push_back(     from.y + (py+1) * sy); c.verts.push_back(to.z); c.verts.push_back(1.0);
 			c.verts.push_back( from.x + (px+1) * sx); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(to.z); c.verts.push_back(1.0);
 			c.verts.push_back( from.x + (px+1) * sx); c.verts.push_back( from.y + py * sy);     c.verts.push_back(to.z); c.verts.push_back(1.0);
-		}
 
+		}
+	
+	for (int vid = 0; vid < face_fpartition * face_fpartition * 4; vid++) {
+		c.normals.push_back(0.0); c.normals.push_back(0.0); c.normals.push_back(1.0); c.normals.push_back(0.0);
+	}
+
+		     
  	// 2 (right)
 	for (int pz = 0; pz < face_fpartition; pz++)
 		for (int py = 0; py < face_fpartition; py++) {
@@ -137,6 +155,9 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_fpartition, Cube &c) {
 			c.verts.push_back( to.x); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
 		}
 
+	for (int vid = 0; vid < face_fpartition * face_fpartition * 4; vid++) {
+		c.normals.push_back(1.0); c.normals.push_back(0.0); c.normals.push_back(0.0); c.normals.push_back(0.0);
+	}
 
 	// // 6 (left)
 	for (int pz = 0; pz < face_fpartition; pz++)
@@ -147,6 +168,10 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_fpartition, Cube &c) {
 			c.verts.push_back( from.x); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(from.z + (pz+1)* sz);  c.verts.push_back(1.0);
 		}
 
+	for (int vid = 0; vid < face_fpartition * face_fpartition * 4; vid++) {
+		c.normals.push_back(-1.0); c.normals.push_back(0.0); c.normals.push_back(0.0); c.normals.push_back(0.0);
+	}
+	
 	// 5 (top)
 	for (int pz = 0; pz < face_fpartition; pz++)
 		for (int px = 0; px < face_fpartition; px++) {
@@ -156,6 +181,10 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_fpartition, Cube &c) {
 			c.verts.push_back( from.x + (px+1)*sx); c.verts.push_back( to.y); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
 		}
 
+	for (int vid = 0; vid < face_fpartition * face_fpartition * 4; vid++) {
+		c.normals.push_back(0.0); c.normals.push_back(1.0); c.normals.push_back(0.0); c.normals.push_back(0.0);
+	}
+	
 	// //3 (bottom)
 	for (int pz = 0; pz < face_fpartition; pz++)
 		for (int px = 0; px < face_fpartition; px++) {
@@ -164,6 +193,11 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_fpartition, Cube &c) {
 			c.verts.push_back( from.x + (px+1)*sx); c.verts.push_back( from.y); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
 			c.verts.push_back( from.x + (px+1)*sx); c.verts.push_back( from.y); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
 		}
+
+	for (int vid = 0; vid < face_fpartition * face_fpartition * 4; vid++) {
+		c.normals.push_back(0.0); c.normals.push_back(-1.0); c.normals.push_back(0.0); c.normals.push_back(0.0);
+	}
+	
 }
 
 void initVertexBuffer() {
@@ -171,6 +205,11 @@ void initVertexBuffer() {
 	glGenBuffers(1, &cubeVertBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, cubeVertBuffer);
 	glBufferData(GL_ARRAY_BUFFER, cubeVertexNum * sizeof(float), &sCube.verts[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glGenBuffers(1, &cubeNormalBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, cubeNormalBuffer);
+	glBufferData(GL_ARRAY_BUFFER, cubeVertexNum * sizeof(float), &sCube.normals[0], GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glGenBuffers(1, &cubeIndexBO);
@@ -188,7 +227,6 @@ void initCube(void)
 	glGenVertexArrays(1, &cubeVAO);
 	glBindVertexArray(cubeVAO);
 
-
 	std::vector<GLuint> shaderList;
 	 
 	shaderList.push_back(initShader(GL_VERTEX_SHADER, "cube.vert"));
@@ -204,6 +242,8 @@ void initCube(void)
 	magnitudeUniform = glGetUniformLocation(theProgram, "magnitude");
 	fcenterUniform = glGetUniformLocation(theProgram, "force_center");
 	// axisUniform = glGetUniformLocation(theProgram, "axis");
+	lightDirUniform = glGetUniformLocation(theProgram, "light_direction");
+	lightIntensityUniform = glGetUniformLocation(theProgram, "light_intensity");
 	
 	memset(perspectiveMatrix, 0, sizeof(float) * 16);
 	perspectiveMatrix[0] = fFrustumScale;
@@ -234,7 +274,7 @@ GLuint CreateProgram(const std::vector<GLuint> &shaderList)
 		cerr << "Linker failure: " << strInfoLog;
 		delete[] strInfoLog;
 	}
-    
+	
 	for(size_t iLoop = 0; iLoop < shaderList.size(); iLoop++)
 		glDetachShader(program, shaderList[iLoop]);
 
@@ -314,6 +354,10 @@ static void redraw(void)
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
 
+	glBindBuffer(GL_ARRAY_BUFFER, cubeNormalBuffer);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
+
 	glUniform4f(basicOffsetUn, 0.0f, -6.0f, -30.0f, 0);
 
 	glUniform1f(tUniform, t);
@@ -322,10 +366,16 @@ static void redraw(void)
 	glUniform4f(fcenterUniform,
 		    force_center.x, force_center.y, force_center.z, 1.0);
 
+	glUniform3fv(lightDirUniform, 1, light_direction);
+	glUniform4f(lightIntensityUniform, 
+		     1.0, 1.0, 1.0, 1.0);
+
+
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeIndexBO);
 	glDrawElements(GL_TRIANGLES, sCube.ids.size(), GL_UNSIGNED_INT, NULL);
 
 	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
 	glUseProgram(0);
 	
 	glutSwapBuffers();
@@ -419,7 +469,6 @@ int main(int argc, char **argv)
 	glEnable(GL_CULL_FACE);
 	glEnable (GL_DEPTH_TEST);
 
-	
 	GLenum err = glewInit();
 	if (GLEW_OK != err) {
 		/* Problem: glewInit failed, something is seriously wrong. */

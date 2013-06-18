@@ -1,13 +1,20 @@
 #version 330
 
 layout(location = 0) in vec4 position;
+layout(location = 1) in vec4 normal;
+/* layout(location = 2) in vec4 diffuseColor; */
+
+
 uniform vec4 basic_offset;
 uniform mat4 perspectiveMatrix;
+uniform vec3 light_direction;
+uniform vec4 light_intensity;
 
 uniform vec4 force_center;
 uniform float magnitude;
 uniform float T;
 
+smooth out vec4 interpColor;
 
 mat4 rotationMatrix(vec3 _axis, float angle);
 mat4 translationMatrix(vec4 tv);
@@ -35,8 +42,22 @@ void main()
 	mat4 rot3 = rotationMatrix(axis3, nt3 * 3.14 / 360.0);
 	mat4 rot4 = rotationMatrix(axis4, nt4 * 3.14 / 360.0);
 	mat4 tr = translationMatrix(basic_offset);
+
+	mat4 full_tr = rot4 * rot3 * rot2 * rot * tr;
+		
+	gl_Position =  position * full_tr * perspectiveMatrix;
+
+	vec4 tnormal = normal * full_tr;
 	
-	gl_Position =  position * rot4 * rot3 * rot2 * rot * tr * perspectiveMatrix;
+	float cosAngIncidence = dot(normalize(vec3(tnormal)),
+				    normalize(vec3(-light_direction)));
+
+	cosAngIncidence = clamp(cosAngIncidence, 0, 1);
+	
+	vec4 diffuseColor = vec4(0.1, 0.5, 1.0, 1.0);
+	
+	interpColor = cosAngIncidence * diffuseColor;
+	interpColor.a = 1.0;
 }
 
 mat4 rotationMatrix(vec3 _axis, float angle)
@@ -57,10 +78,5 @@ mat4 translationMatrix(vec4 tv)
 		    0.0, 1.0, 0.0, tv.y,
 		    0.0, 0.0, 1.0, tv.z,
 		    0.0, 0.0, 0.0, 1.0);
-
-	/* return mat4(1.0, 0.0, 0.0, 0.19, */
-	/* 	    0.0, 1.0, 0.0, 0, */
-	/* 	    0.0, 0.0, 1.0, -6.0, */
-	/* 	    0.0, 0.0, 0.0, 1.0); */
 
 }
