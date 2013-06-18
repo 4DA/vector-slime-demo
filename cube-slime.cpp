@@ -59,6 +59,10 @@ GLuint axisUniform;
 GLuint lightDirUniform;
 GLuint lightIntensityUniform;
 
+GLuint ax1un, ax2un, ax3un, ax4un;
+GLuint t1un, t2un, t3un, t4un;
+GLuint dmod1un, dmod2un, dmod3un, dmod4un;
+
 float perspectiveMatrix[16];
 float fFrustumScale = 1.0f; float fzNear = 0.5f; float fzFar = 90.0f;
 
@@ -244,6 +248,21 @@ void initCube(void)
 	// axisUniform = glGetUniformLocation(theProgram, "axis");
 	lightDirUniform = glGetUniformLocation(theProgram, "light_direction");
 	lightIntensityUniform = glGetUniformLocation(theProgram, "light_intensity");
+
+	ax1un = glGetUniformLocation(theProgram, "ax1");
+	ax2un = glGetUniformLocation(theProgram, "ax2");
+	ax3un = glGetUniformLocation(theProgram, "ax3");
+	ax4un = glGetUniformLocation(theProgram, "ax4");
+
+	t1un = glGetUniformLocation(theProgram, "t1");
+	t2un = glGetUniformLocation(theProgram, "t2");
+	t3un = glGetUniformLocation(theProgram, "t3");
+	t4un = glGetUniformLocation(theProgram, "t4");
+
+	dmod1un = glGetUniformLocation(theProgram, "dmod1");
+	dmod2un = glGetUniformLocation(theProgram, "dmod2");
+	dmod3un = glGetUniformLocation(theProgram, "dmod3");
+	dmod4un = glGetUniformLocation(theProgram, "dmod4");
 	
 	memset(perspectiveMatrix, 0, sizeof(float) * 16);
 	perspectiveMatrix[0] = fFrustumScale;
@@ -328,14 +347,42 @@ GLuint initShader(GLenum eShaderType, const std::string &strShaderFile)
 	return shader;
 }
 
-static void redraw(void)
-{
+void setUniforms(int t) {
+	glUniform4f(basicOffsetUn, 0.0f, -6.0f, -30.0f, 0);
+
+	glUniform1f(tUniform, t);
+	glUniform1f(magnitudeUniform, DISPLACE_PER_UNIT);
+
+	glUniform4f(fcenterUniform,
+		    force_center.x, force_center.y, force_center.z, 1.0);
+
+	glUniform3fv(lightDirUniform, 1, light_direction);
+	glUniform4f(lightIntensityUniform, 
+		     1.0, 1.0, 1.0, 1.0);
+
+	glUniform3f(ax1un, 0,     1,   -0.2);
+	glUniform3f(ax2un, 0.4,   0.4,  0.0);
+	glUniform3f(ax3un, 0,    -0.6,  0.2);
+	glUniform3f(ax4un, -0.2, -0.3, -0.0);
+
+	glUniform1i(t1un, 500);
+	glUniform1i(t2un, 750);	
+	glUniform1i(t3un, 700);
+	glUniform1i(t4un, 870);
+
+	glUniform1f(dmod1un, 1);
+	glUniform1f(dmod2un, 0.25);	
+	glUniform1f(dmod3un, 1);
+	glUniform1f(dmod4un, 0.25);	
+}
+
+static void redraw(void) {
 	static float t=50;
 	int a,b;
 	unsigned int currentVer;
 
 	if (t > maxtime) 
-		t = 50;
+		t = 160;
 	
 	t+=rSpeed;
 
@@ -358,18 +405,7 @@ static void redraw(void)
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
 
-	glUniform4f(basicOffsetUn, 0.0f, -6.0f, -30.0f, 0);
-
-	glUniform1f(tUniform, t);
-	glUniform1f(magnitudeUniform, DISPLACE_PER_UNIT);
-
-	glUniform4f(fcenterUniform,
-		    force_center.x, force_center.y, force_center.z, 1.0);
-
-	glUniform3fv(lightDirUniform, 1, light_direction);
-	glUniform4f(lightIntensityUniform, 
-		     1.0, 1.0, 1.0, 1.0);
-
+	setUniforms(t);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeIndexBO);
 	glDrawElements(GL_TRIANGLES, sCube.ids.size(), GL_UNSIGNED_INT, NULL);
