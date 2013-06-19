@@ -360,29 +360,46 @@ void setUniforms(int t) {
 	glUniform4f(lightIntensityUniform, 
 		     1.0, 1.0, 1.0, 1.0);
 
-	glUniform3f(ax1un, 0,     1,   -0.2);
-	glUniform3f(ax2un, 0.4,   0.4,  0.0);
-	glUniform3f(ax3un, 0,    -0.6,  0.2);
-	glUniform3f(ax4un, -0.2, -0.3, -0.0);
+	float ax1[] = {0, 1, -0.2};
+	float ax2[] = {0.4, 0.4, 0.0};
+	float ax3[] = {0, -0.6, 0.2};
+	float ax4[] = {-0.2, -0.3, -0.0};
 
-	glUniform1i(t1un, 500);
-	glUniform1i(t2un, 750);	
-	glUniform1i(t3un, 700);
-	glUniform1i(t4un, 870);
+	glUniform3fv(ax1un, 1, ax1);
+	glUniform3fv(ax2un, 1, ax2);
+	glUniform3fv(ax3un, 1, ax3);
+	glUniform3fv(ax4un, 1, ax4);
 
-	glUniform1f(dmod1un, 1);
-	glUniform1f(dmod2un, 0.25);	
-	glUniform1f(dmod3un, 1);
-	glUniform1f(dmod4un, 0.25);	
+	static int t1=500, t2=750, t3=700, t4=870;
+
+	if (t % 1000 == 0) {
+		
+	}
+	
+	glUniform1i(t1un, t1 );
+	glUniform1i(t2un, t2 );	
+	glUniform1i(t3un, t3 );
+	glUniform1i(t4un, t4 );
+
+	static float dmod1=1, dmod2=0.25, dmod3=1, dmod4=0.25;
+
+	glUniform1f(dmod1un, dmod1);
+	glUniform1f(dmod2un, dmod2);	
+	glUniform1f(dmod3un, dmod3);
+	glUniform1f(dmod4un, dmod4);
+
+	// if (t % 600 == 0)
+	// 	dmod1 += (100 - (rand() % 200)) / 800.0;
+	
 }
 
 static void redraw(void) {
-	static float t=50;
+	static float t=150;
 	int a,b;
 	unsigned int currentVer;
 
-	if (t > maxtime) 
-		t = 160;
+	// if (t > maxtime) 
+	// 	t = 160;
 	
 	t+=rSpeed;
 

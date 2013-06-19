@@ -30,10 +30,10 @@ void main()
 	float nt3 = T - t3 + displace * dmod3; 
 	float nt4 = T - t4 + displace * dmod4; 
 	
-	nt  = clamp(nt,  0.01, 720);
-	nt2 = clamp(nt2, 0.01, 720);
-	nt3 = clamp(nt3, 0.01, 720);
-	nt4 = clamp(nt4, 0.01, 720);
+	nt  = max(nt,  0.01);
+	nt2 = max(nt2, 0.01);
+	nt3 = max(nt3, 0.01);
+	nt4 = max(nt4, 0.01);
 
 	mat4 rot = rotationMatrix (ax1, nt * 3.14 / 360.0);
 	mat4 rot2 = rotationMatrix(ax2, nt2 * 3.14 / 360.0);
