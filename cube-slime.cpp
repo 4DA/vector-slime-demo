@@ -23,6 +23,7 @@
 #include <istream>
 #include <fstream>
 #include <cstring>
+#include <ctime>
 using namespace std;
 
 
@@ -67,7 +68,7 @@ float perspectiveMatrix[16];
 float fFrustumScale = 1.0f; float fzNear = 0.5f; float fzFar = 90.0f;
 
 
-int maxtime = 1500;
+int maxtime = 1100;
 float rSpeed = 4;
 
 bool wireframe = false;
@@ -347,6 +348,16 @@ GLuint initShader(GLenum eShaderType, const std::string &strShaderFile)
 	return shader;
 }
 
+
+float genVal() {
+	return (100 - (rand() % 200)) / 200.0;
+}
+
+float genNVal() {
+	return (rand() % 100) / 100.0;
+}
+
+
 void setUniforms(int t) {
 	glUniform4f(basicOffsetUn, 0.0f, -6.0f, -30.0f, 0);
 
@@ -359,29 +370,109 @@ void setUniforms(int t) {
 	glUniform3fv(lightDirUniform, 1, light_direction);
 	glUniform4f(lightIntensityUniform, 
 		     1.0, 1.0, 1.0, 1.0);
+	
+	static float ax1[] = {0, 1, -0.2};
+	static float ax2[] = {0.4, 0.4, 0.0};
+	static float ax3[] = {0, -0.6, 0.2};
+	static float ax4[] = {-0.2, -0.3, -0.0};
 
-	float ax1[] = {0, 1, -0.2};
-	float ax2[] = {0.4, 0.4, 0.0};
-	float ax3[] = {0, -0.6, 0.2};
-	float ax4[] = {-0.2, -0.3, -0.0};
-
-	glUniform3fv(ax1un, 1, ax1);
-	glUniform3fv(ax2un, 1, ax2);
-	glUniform3fv(ax3un, 1, ax3);
-	glUniform3fv(ax4un, 1, ax4);
+	glm::vec3 vax1 = glm::vec3(0, 1, -0.2);
+	glm::vec3 vax2 = glm::vec3(0.4, 0.4, 0.0);
+	glm::vec3 vax3 = glm::vec3(0, -0.6, 0.2);
+	glm::vec3 vax4 = glm::vec3(-0.2, -0.3, -0.0);
 
 	static int t1=500, t2=750, t3=700, t4=870;
+	static float dmod1=1, dmod2=0.25, dmod3=1, dmod4=0.25;
 
-	if (t % 1000 == 0) {
-		
+	static glm::vec3 rv1, nv1=vax1;
+	static glm::vec3 rv2, nv2=vax2;
+	static glm::vec3 rv3, nv3=vax3;
+	static glm::vec3 rv4, nv4=vax4;
+
+	static float ndm1 = dmod1;
+	static float ndm2 = dmod1;
+	static float ndm3 = dmod1;
+	static float ndm4 = dmod1;
+
+	//generate new arbitrary rotation vector
+
+	if ((t % maxtime) < rSpeed) {
+		rv1 = glm::vec3 (genVal(), genVal(), genVal());
+		rv2 = glm::vec3 (genVal(), genVal(), genVal());
+		rv3 = glm::vec3 (genVal(), genVal(), genVal());
+		rv4 = glm::vec3 (genVal(), genVal(), genVal());
+
+		ndm1  = genNVal();
+		ndm2  = genNVal();
+		ndm3  = genNVal();
+		ndm4  = genNVal();
+
+		cout << "gen \n\n";
+		// cout << rv1  [0] << endl;
+		// cout << rv2  [1] << endl;
+		// cout << rv3  [2] << endl << endl;
+	}
+
+	float nt = t % maxtime;
+
+	//interpolate new current vectors
+	if (nt < 400) {
+		for (int x = 0; x < 3; x++) {
+			glm::vec3 dv1  = 0.0025f * (rv1  - vax1 );
+			glm::vec3 dv2  = 0.0025f * (rv2  - vax2 );
+			glm::vec3 dv3  = 0.0025f * (rv3  - vax3 );
+			glm::vec3 dv4  = 0.0025f * (rv4  - vax4 );
+
+			if (nt < rSpeed) {
+				cout << "pfnv:\n";
+				cout << nv1 [0] << endl;
+				cout << nv1 [1] << endl;
+				cout << nv1 [2] << endl << endl;
+			}
+			
+			nv1 = vax1 + nt * dv1;
+			nv2 = vax2 + nt * dv2;
+			nv3 = vax3 + nt * dv3;
+			nv4 = vax4 + nt * dv4;
+
+			if (nt < rSpeed) {
+				cout << "fnv:\n";
+				cout << nv1 [0] << endl;
+				cout << nv1 [1] << endl;
+				cout << nv1 [2] << endl << endl;
+
+			}
+
+			// nv1 = vax1 + 4.0f * dv1;
+			// nv2 = vax2 + 4.0f * dv2;
+			// nv3 = vax3 + 4.0f * dv3;
+			// nv4 = vax4 + 4.0f * dv4;
+
+		}
+	}
+	else if (fabs(nt - 400) < rSpeed) {
+		vax1  = nv1;
+		vax2  = nv2;
+		vax3  = nv3;
+		vax4  = nv4;
+
+		cout << "lnv:\n";
+		cout << nv1 [0] << endl;
+		cout << nv1 [1] << endl;
+		cout << nv1 [2] << endl << endl;
 	}
 	
+		
+		
+	glUniform3fv(ax1un, 1, &nv1[0]);
+	glUniform3fv(ax2un, 1, &nv2[0]);
+	glUniform3fv(ax3un, 1, &nv3[0]);
+	glUniform3fv(ax4un, 1, &nv4[0]);
+
 	glUniform1i(t1un, t1 );
 	glUniform1i(t2un, t2 );	
 	glUniform1i(t3un, t3 );
 	glUniform1i(t4un, t4 );
-
-	static float dmod1=1, dmod2=0.25, dmod3=1, dmod4=0.25;
 
 	glUniform1f(dmod1un, dmod1);
 	glUniform1f(dmod2un, dmod2);	
@@ -445,6 +536,7 @@ void print_usage() {
 }
 
 void init(int argc, char **argv) {
+	srand(time(NULL));
 	int rez;
 	while ((rez = getopt(argc,argv,"hwp:s:l:")) != -1){
 		switch (rez){
