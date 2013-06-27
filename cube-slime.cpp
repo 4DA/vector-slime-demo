@@ -3,12 +3,12 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 
-// #ifdef _WIN32
+#ifdef _WIN32
 // #define _CRT_TERMINATE_DEFINED
 // void __cdecl abort(void);
 #include <GL/glut.h>
 #include "getopt.h"
-// #endif
+#endif
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -376,10 +376,10 @@ void setUniforms(int t) {
 	static float ax3[] = {0, -0.6, 0.2};
 	static float ax4[] = {-0.2, -0.3, -0.0};
 
-	glm::vec3 vax1 = glm::vec3(0, 1, -0.2);
-	glm::vec3 vax2 = glm::vec3(0.4, 0.4, 0.0);
-	glm::vec3 vax3 = glm::vec3(0, -0.6, 0.2);
-	glm::vec3 vax4 = glm::vec3(-0.2, -0.3, -0.0);
+	static glm::vec3 vax1 = glm::vec3(0, 1, -0.2);
+	static glm::vec3 vax2 = glm::vec3(0.4, 0.4, 0.0);
+	static glm::vec3 vax3 = glm::vec3(0, -0.6, 0.2);
+	static glm::vec3 vax4 = glm::vec3(-0.2, -0.3, -0.0);
 
 	static int t1=500, t2=750, t3=700, t4=870;
 	static float dmod1=1, dmod2=0.25, dmod3=1, dmod4=0.25;
@@ -422,7 +422,7 @@ void setUniforms(int t) {
 			glm::vec3 dv2  = 0.0025f * (rv2  - vax2 );
 			glm::vec3 dv3  = 0.0025f * (rv3  - vax3 );
 			glm::vec3 dv4  = 0.0025f * (rv4  - vax4 );
-
+			cout << "-";
 			if (nt < rSpeed) {
 				cout << "pfnv:\n";
 				cout << nv1 [0] << endl;
@@ -435,6 +435,23 @@ void setUniforms(int t) {
 			nv3 = vax3 + nt * dv3;
 			nv4 = vax4 + nt * dv4;
 
+			cout << "nt * dv1:\n ";
+			vec3 tt = nt * dv1;
+			cout << tt[0] << endl << tt[1] << endl
+			     << tt[2] << endl;
+
+			cout << "vax1: \n";
+			cout << vax1[0] << endl << vax1[1] << endl
+			     << vax1[2] << endl;
+
+			cout << "vax1 + nd * dv1: \n";
+			vec3 vn = vax1 + nt * dv1;
+			cout << vn[0] << endl << vn[1] << endl
+			     << vn[2] << endl;
+			
+
+			cout << "\ntr-" ;				
+			
 			if (nt < rSpeed) {
 				cout << "fnv:\n";
 				cout << nv1 [0] << endl;
@@ -442,15 +459,9 @@ void setUniforms(int t) {
 				cout << nv1 [2] << endl << endl;
 
 			}
-
-			// nv1 = vax1 + 4.0f * dv1;
-			// nv2 = vax2 + 4.0f * dv2;
-			// nv3 = vax3 + 4.0f * dv3;
-			// nv4 = vax4 + 4.0f * dv4;
-
 		}
 	}
-	else if (fabs(nt - 400) < rSpeed) {
+	if (nt >= 400 && fabs(nt - 400) < rSpeed) {
 		vax1  = nv1;
 		vax2  = nv2;
 		vax3  = nv3;
