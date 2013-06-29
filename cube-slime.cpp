@@ -395,7 +395,6 @@ void setUniforms(int t) {
 	static float ndm4 = dmod1;
 
 	//generate new arbitrary rotation vector
-
 	if ((t % maxtime) < rSpeed) {
 		rv1 = glm::vec3 (genVal(), genVal(), genVal());
 		rv2 = glm::vec3 (genVal(), genVal(), genVal());
@@ -406,73 +405,29 @@ void setUniforms(int t) {
 		ndm2  = genNVal();
 		ndm3  = genNVal();
 		ndm4  = genNVal();
-
-		cout << "gen \n\n";
-		// cout << rv1  [0] << endl;
-		// cout << rv2  [1] << endl;
-		// cout << rv3  [2] << endl << endl;
 	}
 
 	float nt = t % maxtime;
 
 	//interpolate new current vectors
 	if (nt < 400) {
-		for (int x = 0; x < 3; x++) {
 			glm::vec3 dv1  = 0.0025f * (rv1  - vax1 );
 			glm::vec3 dv2  = 0.0025f * (rv2  - vax2 );
 			glm::vec3 dv3  = 0.0025f * (rv3  - vax3 );
 			glm::vec3 dv4  = 0.0025f * (rv4  - vax4 );
-			cout << "-";
-			if (nt < rSpeed) {
-				cout << "pfnv:\n";
-				cout << nv1 [0] << endl;
-				cout << nv1 [1] << endl;
-				cout << nv1 [2] << endl << endl;
-			}
+
 			
 			nv1 = vax1 + nt * dv1;
 			nv2 = vax2 + nt * dv2;
 			nv3 = vax3 + nt * dv3;
 			nv4 = vax4 + nt * dv4;
-
-			cout << "nt * dv1:\n ";
-			vec3 tt = nt * dv1;
-			cout << tt[0] << endl << tt[1] << endl
-			     << tt[2] << endl;
-
-			cout << "vax1: \n";
-			cout << vax1[0] << endl << vax1[1] << endl
-			     << vax1[2] << endl;
-
-			cout << "vax1 + nd * dv1: \n";
-			vec3 vn = vax1 + nt * dv1;
-			cout << vn[0] << endl << vn[1] << endl
-			     << vn[2] << endl;
-			
-
-			cout << "\ntr-" ;				
-			
-			if (nt < rSpeed) {
-				cout << "fnv:\n";
-				cout << nv1 [0] << endl;
-				cout << nv1 [1] << endl;
-				cout << nv1 [2] << endl << endl;
-
-			}
-		}
 	}
 	if (nt >= 400 && fabs(nt - 400) < rSpeed) {
 		vax1  = nv1;
 		vax2  = nv2;
 		vax3  = nv3;
 		vax4  = nv4;
-
-		cout << "lnv:\n";
-		cout << nv1 [0] << endl;
-		cout << nv1 [1] << endl;
-		cout << nv1 [2] << endl << endl;
 	}
-	
 		
 		
 	glUniform3fv(ax1un, 1, &nv1[0]);
@@ -489,21 +444,12 @@ void setUniforms(int t) {
 	glUniform1f(dmod2un, dmod2);	
 	glUniform1f(dmod3un, dmod3);
 	glUniform1f(dmod4un, dmod4);
-
-	// if (t % 600 == 0)
-	// 	dmod1 += (100 - (rand() % 200)) / 800.0;
-	
 }
 
 static void redraw(void) {
-	static float t=150;
+	static float t=0;
 	int a,b;
 	unsigned int currentVer;
-
-	// if (t > maxtime) 
-	// 	t = 160;
-	
-	t+=rSpeed;
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -535,6 +481,8 @@ static void redraw(void) {
 	
 	glutSwapBuffers();
 	glutPostRedisplay();
+
+	t+=rSpeed;
 }
 
 void print_usage() {
