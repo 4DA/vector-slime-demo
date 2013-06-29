@@ -69,7 +69,7 @@ float fFrustumScale = 1.0f; float fzNear = 0.5f; float fzFar = 90.0f;
 
 
 int maxtime = 1100;
-float rSpeed = 4;
+float rSpeed = 2;
 
 bool wireframe = false;
 
@@ -83,7 +83,7 @@ struct Cube {
 int fpartition = 20;
 
 vec3 force_center(0,-10,0);
-float DISPLACE_PER_UNIT = 7;
+float DISPLACE_PER_UNIT = 5;
 
 // cube unfolding
 // looking to -Z axis
@@ -357,6 +357,21 @@ float genNVal() {
 	return (rand() % 100) / 100.0;
 }
 
+glm::vec3 genNonColinear(glm::vec3 &prev) {
+	const float COS_2PI_3 = -0.5;
+		
+	glm::vec3 nv;
+
+	do {
+		nv = glm::normalize (glm::vec3
+				     (genVal(), genVal(), genVal()));
+	}
+	
+	while (glm::dot(prev, nv) < COS_2PI_3);
+	// while (false);
+
+	return nv;
+}
 
 void setUniforms(int t) {
 	glUniform4f(basicOffsetUn, 0.0f, -6.0f, -30.0f, 0);
@@ -396,11 +411,11 @@ void setUniforms(int t) {
 
 	//generate new arbitrary rotation vector
 	if ((t % maxtime) < rSpeed) {
-		rv1 = glm::vec3 (genVal(), genVal(), genVal());
-		rv2 = glm::vec3 (genVal(), genVal(), genVal());
-		rv3 = glm::vec3 (genVal(), genVal(), genVal());
-		rv4 = glm::vec3 (genVal(), genVal(), genVal());
-
+		rv1 = glm::normalize (glm::vec3 (genVal(), genVal(), genVal()));
+		rv2 = genNonColinear(rv1);
+		rv3 = genNonColinear(rv1);
+		rv4 = genNonColinear(rv3);
+		
 		ndm1  = genNVal();
 		ndm2  = genNVal();
 		ndm3  = genNVal();
@@ -489,8 +504,8 @@ void print_usage() {
 	cout << "Usage: cube-slime [-w] [-p fpartition_number] [-s speed] [-l latency] -h\n"
 		"\t-w: use wireframe mode (default: off)\n"
 		"\t-p: cube face fpartition count (default: 20)\n"
-		"\t-s: rotation speed (default: 4)\n"
-		"\t-l: vertices inertion (default: 7)\n"
+		"\t-s: rotation speed (default: 2)\n"
+		"\t-l: vertices inertion (default: 5)\n"
 		"\t-h: print this help message and exit\n";
 }
 
