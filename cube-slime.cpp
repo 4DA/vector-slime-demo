@@ -358,7 +358,7 @@ float genNVal() {
 }
 
 glm::vec3 genNonColinear(glm::vec3 &prev) {
-	const float COS_2PI_3 = -0.5;
+	const float COS_PI = -1;
 		
 	glm::vec3 nv;
 
@@ -367,7 +367,7 @@ glm::vec3 genNonColinear(glm::vec3 &prev) {
 				     (genVal(), genVal(), genVal()));
 	}
 	
-	while (glm::dot(prev, nv) < COS_2PI_3);
+	while (glm::dot(prev, nv) < COS_PI);
 	// while (false);
 
 	return nv;
@@ -397,7 +397,7 @@ void setUniforms(int t) {
 	static glm::vec3 vax4 = glm::vec3(-0.2, -0.3, -0.0);
 
 	static int t1=500, t2=750, t3=700, t4=870;
-	static float dmod1=1, dmod2=0.25, dmod3=1, dmod4=0.25;
+	static float dmod1=1, dmod2=0.95, dmod3=1, dmod4=0.65;
 
 	static glm::vec3 rv1, nv1=vax1;
 	static glm::vec3 rv2, nv2=vax2;
@@ -412,9 +412,9 @@ void setUniforms(int t) {
 	//generate new arbitrary rotation vector
 	if ((t % maxtime) < rSpeed) {
 		rv1 = glm::normalize (glm::vec3 (genVal(), genVal(), genVal()));
-		rv2 = genNonColinear(rv1);
+		rv2 = glm::normalize (glm::vec3 (genVal(), genVal(), genVal()));
 		rv3 = genNonColinear(rv1);
-		rv4 = genNonColinear(rv3);
+		rv4 = genNonColinear(rv2);
 		
 		ndm1  = genNVal();
 		ndm2  = genNVal();
