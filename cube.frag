@@ -1,3 +1,4 @@
+/* ; -*- mode: c;-*- */
 #version 330
 
 in vec3 mynormal;
