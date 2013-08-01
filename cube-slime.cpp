@@ -58,6 +58,7 @@ GLuint magnitudeUniform;
 GLuint fcenterUniform;
 GLuint axisUniform;
 GLuint lightDirUniform;
+GLuint lposUniform;
 GLuint lightIntensityUniform;
 
 GLuint ax1un, ax2un, ax3un, ax4un;
@@ -236,6 +237,7 @@ void initCube(void)
 	 
 	shaderList.push_back(initShader(GL_VERTEX_SHADER, "cube.vert"));
 	shaderList.push_back(initShader(GL_FRAGMENT_SHADER, "cube.frag"));
+	shaderList.push_back(initShader(GL_GEOMETRY_SHADER, "cube.geom"));
 	theProgram = CreateProgram(shaderList);
 
 	std::for_each(shaderList.begin(), shaderList.end(), glDeleteShader);
@@ -248,6 +250,7 @@ void initCube(void)
 	fcenterUniform = glGetUniformLocation(theProgram, "force_center");
 	// axisUniform = glGetUniformLocation(theProgram, "axis");
 	lightDirUniform = glGetUniformLocation(theProgram, "light_direction");
+	lposUniform = glGetUniformLocation(theProgram, "l_pos");
 	lightIntensityUniform = glGetUniformLocation(theProgram, "light_intensity");
 
 	ax1un = glGetUniformLocation(theProgram, "ax1");
