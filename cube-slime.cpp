@@ -46,6 +46,9 @@ int cubeVertexNum;
 GLuint theProgram;
 GLuint cubeIndexBO;
 
+GLuint tfvbo;
+GLuint query;
+
 void initCube(void);
 static void redraw(void);
 GLuint initShader(GLenum eShaderType, const std::string &strShaderFile);
@@ -206,6 +209,39 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_fpartition, Cube &c) {
 	
 }
 
+void checkGlErrors( void )
+{
+	GLenum e = glGetError();
+	while ( e != GL_NO_ERROR )
+	{
+		fprintf( stderr, "GL error: %s!\n", gluErrorString(e) );
+		e = glGetError();
+	}
+}
+
+
+void setupTransformFeedbackBuffer(void)
+{
+	int attr[] =
+		{
+			glGetVaryingLocationNV(theProgram, "gl_Position"),
+		};
+	
+	checkGlErrors();
+
+	// generating the buffer, note that GL_TRANSFORM_FEEDBACK_BUFFER is NOT a buffer type
+	glGenBuffers( 1, &tfvbo );
+	glBindBuffer( GL_ARRAY_BUFFER, tfvbo );
+	glBufferData( GL_ARRAY_BUFFER, sCube.verts.size() * sizeof(float), NULL, GL_DYNAMIC_DRAW );
+	
+	// bind the TFB to get the feedback;  MUST be done here, not in display() !
+	glBindBufferBase( GL_TRANSFORM_FEEDBACK_BUFFER_EXT, 0, tfvbo );
+	
+	glTransformFeedbackVaryingsNV( theProgram, 1, attr, GL_INTERLEAVED_ATTRIBS_EXT );
+
+	checkGlErrors();
+}
+
 void initVertexBuffer() {
 	cubeVertexNum = sCube.verts.size();
 	glGenBuffers(1, &cubeVertBuffer);
@@ -274,6 +310,9 @@ void initCube(void)
 	perspectiveMatrix[10] = (fzFar + fzNear) / (fzNear - fzFar);
 	perspectiveMatrix[14] = (2 * fzFar * fzNear) / (fzNear - fzFar);
 	perspectiveMatrix[11] = -1.0f;
+
+	setupTransformFeedbackBuffer();
+	glGenQueries(1, &query);
 }
 
 GLuint CreateProgram(const std::vector<GLuint> &shaderList)
@@ -359,6 +398,7 @@ float genVal() {
 float genNVal() {
 	return (rand() % 100) / 100.0;
 }
+
 
 glm::vec3 genNonColinear(glm::vec3 &prev) {
 	const float COS_PI = -1;
@@ -471,7 +511,7 @@ static void redraw(void) {
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClearColor(0.2f, 0.1f, 0.0f, 0.0f);
 
 	if (wireframe)
 		glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
@@ -490,8 +530,46 @@ static void redraw(void) {
 
 	setUniforms(t);
 
+	glBindBuffer( GL_ARRAY_BUFFER, tfvbo );
+
+	// start transform feedback so that vertices get targetted to 'tfvbo'
+	glBeginTransformFeedbackNV( GL_TRIANGLES );
+	glBeginQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN_EXT, query );
+
+
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeIndexBO);
 	glDrawElements(GL_TRIANGLES, sCube.ids.size(), GL_UNSIGNED_INT, NULL);
+
+	glEndQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN_EXT );
+	glEndTransformFeedbackNV();
+
+	GLuint primitives_written;
+	// read back query results
+	glGetQueryObjectuiv( query, GL_QUERY_RESULT, &primitives_written );
+	if ( primitives_written == 0 )
+		fprintf( stderr, "Primitives written to TFB: %d !\n", primitives_written );
+	
+	// retrieve the data stored in the TFB
+	checkGlErrors();
+	glBindBuffer( GL_ARRAY_BUFFER, tfvbo );
+	float * TFBdata = static_cast<float*>( glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY) );
+	if ( TFBdata == NULL ) {
+		cout << "TFBdata == NULL\n";
+		checkGlErrors();
+	}
+	else
+	{
+		fputs("TFB contents: ", stdout);
+		for ( int i = 0; i < 2*3*4; i ++ )
+			printf( "% 10f  ", TFBdata[i] );
+		putchar('\n');
+	}
+	bool success = glUnmapBuffer( GL_ARRAY_BUFFER );
+	if ( ! success ) {
+		cout << "glUnmapBuffer failed";
+		checkGlErrors();
+		cout << endl << endl;
+	}
 
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
