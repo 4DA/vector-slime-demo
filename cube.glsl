@@ -1,6 +1,4 @@
-/* ; -*- mode: c;-*- */
-#version 330
-
+-- Vertex
 layout(location = 0) in vec4 position;
 layout(location = 1) in vec4 normal;
 
@@ -78,4 +76,39 @@ mat4 translationMatrix(vec4 tv)
 		    0.0, 0.0, 1.0, tv.z,
 		    0.0, 0.0, 0.0, 1.0);
 
+}
+
+-- Geometry
+#extension GL_EXT_geometry_shader4: enable
+
+layout(triangles) in;
+layout(triangle_strip, max_vertices = 3) out;
+smooth in vec4 interpColor[1];
+smooth out vec4 gsInterpColor;
+			    
+void main() {
+	gsInterpColor = interpColor[0];
+
+	gl_Position = gl_in[0].gl_Position;
+	EmitVertex();
+
+	gl_Position = gl_in[1].gl_Position;
+	EmitVertex();
+
+	gl_Position = gl_in[2].gl_Position;
+	EmitVertex();
+	
+	EndPrimitive();
+}
+
+
+-- Fragment
+
+out vec4 outputColor;
+smooth in vec4 gsInterpColor;	
+
+void main()
+{
+	outputColor = gsInterpColor;
+	/* outputColor = vec4(1.0f, 0.3f, 0.3f, 0.5f); */
 }

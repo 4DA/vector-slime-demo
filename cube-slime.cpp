@@ -24,6 +24,8 @@
 #include <fstream>
 #include <cstring>
 #include <ctime>
+
+#include <glsw.h>
 using namespace std;
 
 
@@ -51,8 +53,8 @@ GLuint query;
 
 void initCube(void);
 static void redraw(void);
-GLuint initShader(GLenum eShaderType, const std::string &strShaderFile);
-GLuint CreateProgram(const std::vector<GLuint> &shaderList);
+GLuint initShader(GLenum eShaderType, const char *);
+GLuint CreateProgram(const char *, const char *, const char *);
 
 GLuint basicOffsetUn;
 GLuint perspectiveMatrixUn;
@@ -269,15 +271,7 @@ void initCube(void)
 	glGenVertexArrays(1, &cubeVAO);
 	glBindVertexArray(cubeVAO);
 
-	std::vector<GLuint> shaderList;
-	 
-	shaderList.push_back(initShader(GL_VERTEX_SHADER, "cube.vert"));
-	shaderList.push_back(initShader(GL_FRAGMENT_SHADER, "cube.frag"));
-	shaderList.push_back(initShader(GL_GEOMETRY_SHADER, "cube.geom"));
-	theProgram = CreateProgram(shaderList);
-
-	std::for_each(shaderList.begin(), shaderList.end(), glDeleteShader);
-
+	theProgram = CreateProgram("cube.Vertex", "cube.Geometry", "cube.Fragment");
 	basicOffsetUn = glGetUniformLocation(theProgram, "basic_offset");
 	perspectiveMatrixUn = glGetUniformLocation(theProgram, "perspectiveMatrix");
 
@@ -315,55 +309,59 @@ void initCube(void)
 	glGenQueries(1, &query);
 }
 
-GLuint CreateProgram(const std::vector<GLuint> &shaderList)
+GLuint CreateProgram(const char* vsKey, const char* gsKey, const char* fsKey)
 {
-	GLuint program = glCreateProgram();
+    static int first = 1;
+    GLuint shader_id, program = glCreateProgram();
+    std::vector<GLuint> shaderList;
     
-	for(size_t iLoop = 0; iLoop < shaderList.size(); iLoop++)
-		glAttachShader(program, shaderList[iLoop]);
-    
-	glLinkProgram(program);
-    
-	GLint status;
-	glGetProgramiv (program, GL_LINK_STATUS, &status);
-	if (status == GL_FALSE)
-	{
-		GLint infoLogLength;
-		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &infoLogLength);
-        
-		GLchar *strInfoLog = new GLchar[infoLogLength + 1];
-		glGetProgramInfoLog(program, infoLogLength, NULL, strInfoLog);
-		cerr << "Linker failure: " << strInfoLog;
-		delete[] strInfoLog;
-	}
-	
-	for(size_t iLoop = 0; iLoop < shaderList.size(); iLoop++)
-		glDetachShader(program, shaderList[iLoop]);
+    if (first)
+    {
+        glswInit();
+        glswAddPath("../", ".glsl");
+        glswAddPath("./", ".glsl");
+        glswAddDirective("*", "#version 330");
 
-	return program;
+        first = 0;
+    }
+
+    const char *sources[3] = {glswGetShader(vsKey), glswGetShader(gsKey), glswGetShader(fsKey)};
+
+    GLuint types[3] = {GL_VERTEX_SHADER, GL_GEOMETRY_SHADER, GL_FRAGMENT_SHADER};
+
+    for (int i = 0; i < 3; i++) {
+	    shader_id = initShader(types[i], sources[i]);
+	    glAttachShader(program, shader_id);
+	    shaderList.push_back(shader_id);
+    }
+
+    glLinkProgram(program);
+
+    GLint status;
+    glGetProgramiv (program, GL_LINK_STATUS, &status);
+    if (status == GL_FALSE)
+    {
+	    GLint infoLogLength;
+	    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &infoLogLength);
+        
+	    GLchar *strInfoLog = new GLchar[infoLogLength + 1];
+	    glGetProgramInfoLog(program, infoLogLength, NULL, strInfoLog);
+	    cerr << "Linker failure: " << strInfoLog;
+	    delete[] strInfoLog;
+    }
+
+    for(size_t iLoop = 0; iLoop < shaderList.size(); iLoop++) {
+	    glDetachShader(program, shaderList[iLoop]);
+	    glDeleteShader(shaderList[iLoop]);
+    }
+
+    return program;
 }
 
-GLuint initShader(GLenum eShaderType, const std::string &strShaderFile)
+GLuint initShader(GLenum eShaderType, const char *source)
 {
 	GLuint shader = glCreateShader(eShaderType);
-	
-	ifstream myReadFile;
-	myReadFile.open(strShaderFile.c_str());
-	string strFileData;
-	string fileLine;
-	char buf[256];
-	if (myReadFile.is_open()) {
-		while (!myReadFile.eof()) {
-			//getline(myReadFile, fileLine);
-			myReadFile.getline(buf, 256);
-			strFileData.append(buf);
-			strFileData.append("\n");
-		}
-	}
-	myReadFile.close();
-
-	const char *src_data = strFileData.c_str();
-	glShaderSource(shader, 1, &src_data, NULL);
+	glShaderSource(shader, 1, &source, NULL);
     
 	glCompileShader(shader);
     
@@ -543,33 +541,33 @@ static void redraw(void) {
 	glEndQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN_EXT );
 	glEndTransformFeedbackNV();
 
-	GLuint primitives_written;
-	// read back query results
-	glGetQueryObjectuiv( query, GL_QUERY_RESULT, &primitives_written );
-	if ( primitives_written == 0 )
-		fprintf( stderr, "Primitives written to TFB: %d !\n", primitives_written );
+	// GLuint primitives_written;
+	// // read back query results
+	// glGetQueryObjectuiv( query, GL_QUERY_RESULT, &primitives_written );
+	// if ( primitives_written == 0 )
+	// 	fprintf( stderr, "Primitives written to TFB: %d !\n", primitives_written );
 	
 	// retrieve the data stored in the TFB
-	checkGlErrors();
-	glBindBuffer( GL_ARRAY_BUFFER, tfvbo );
-	float * TFBdata = static_cast<float*>( glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY) );
-	if ( TFBdata == NULL ) {
-		cout << "TFBdata == NULL\n";
-		checkGlErrors();
-	}
-	else
-	{
-		fputs("TFB contents: ", stdout);
-		for ( int i = 0; i < 2*3*4; i ++ )
-			printf( "% 10f  ", TFBdata[i] );
-		putchar('\n');
-	}
-	bool success = glUnmapBuffer( GL_ARRAY_BUFFER );
-	if ( ! success ) {
-		cout << "glUnmapBuffer failed";
-		checkGlErrors();
-		cout << endl << endl;
-	}
+	// checkGlErrors();
+	// glBindBuffer( GL_ARRAY_BUFFER, tfvbo );
+	// float * TFBdata = static_cast<float*>( glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY) );
+	// if ( TFBdata == NULL ) {
+	// 	cout << "TFBdata == NULL\n";
+	// 	checkGlErrors();
+	// }
+	// else
+	// {
+	// 	fputs("TFB contents: ", stdout);
+	// 	for ( int i = 0; i < 2*3*4; i ++ )
+	// 		printf( "% 10f  ", TFBdata[i] );
+	// 	putchar('\n');
+	// }
+	// bool success = glUnmapBuffer( GL_ARRAY_BUFFER );
+	// if ( ! success ) {
+	// 	cout << "glUnmapBuffer failed";
+	// 	checkGlErrors();
+	// 	cout << endl << endl;
+	// }
 
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
