@@ -268,6 +268,8 @@ void initCube(void)
 	generatePolyCubeVerts(vec3(-10,-10,-10), vec3(10,10,10), fpartition, sCube);
 	initVertexBuffer();
 
+	cout << "Going to render " << sCube.verts.size() / 3 << " polygons" << endl;
+
 	glGenVertexArrays(1, &cubeVAO);
 	glBindVertexArray(cubeVAO);
 
@@ -502,6 +504,31 @@ void setUniforms(int t) {
 	glUniform1f(dmod4un, dmod4);
 }
 
+/*
+  General transform feedback path:
+  
+glUseProgram( program );
+
+glBeginQuery( GL_PRIMITIVES_GENERATED, … );
+{
+    glBeginQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, … );
+    {
+        glBeginTransformFeedback( type );
+        {
+            glEnable( GL_RASTERIZER_DISCARD );
+            {
+                //  Draw here
+            }
+        }
+        glEndTransformFeedback( );
+    }
+    glEndQuery( GL_PRIMITIVES_GENERATED );
+}
+glEndQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN );
+
+//  Retrieve our queries, enable RASTERIZER_DISCARD and render with our resulting TF buffer(s).
+ */
+
 static void redraw(void) {
 	static float t=0;
 	int a,b;
@@ -530,44 +557,46 @@ static void redraw(void) {
 
 	glBindBuffer( GL_ARRAY_BUFFER, tfvbo );
 
+	glBeginQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN_EXT, query );
+
 	// start transform feedback so that vertices get targetted to 'tfvbo'
 	glBeginTransformFeedbackNV( GL_TRIANGLES );
-	glBeginQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN_EXT, query );
+
 
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeIndexBO);
 	glDrawElements(GL_TRIANGLES, sCube.ids.size(), GL_UNSIGNED_INT, NULL);
 
-	glEndQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN_EXT );
 	glEndTransformFeedbackNV();
+	glEndQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN_EXT );
 
-	// GLuint primitives_written;
-	// // read back query results
-	// glGetQueryObjectuiv( query, GL_QUERY_RESULT, &primitives_written );
-	// if ( primitives_written == 0 )
-	// 	fprintf( stderr, "Primitives written to TFB: %d !\n", primitives_written );
+	GLuint primitives_written;
+	// read back query results
+	glGetQueryObjectuiv( query, GL_QUERY_RESULT, &primitives_written );
+	if ( primitives_written == 0 )
+		fprintf( stderr, "Primitives written to TFB: %d !\n", primitives_written );
 	
 	// retrieve the data stored in the TFB
-	// checkGlErrors();
-	// glBindBuffer( GL_ARRAY_BUFFER, tfvbo );
-	// float * TFBdata = static_cast<float*>( glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY) );
-	// if ( TFBdata == NULL ) {
-	// 	cout << "TFBdata == NULL\n";
-	// 	checkGlErrors();
-	// }
-	// else
-	// {
-	// 	fputs("TFB contents: ", stdout);
-	// 	for ( int i = 0; i < 2*3*4; i ++ )
-	// 		printf( "% 10f  ", TFBdata[i] );
-	// 	putchar('\n');
-	// }
-	// bool success = glUnmapBuffer( GL_ARRAY_BUFFER );
-	// if ( ! success ) {
-	// 	cout << "glUnmapBuffer failed";
-	// 	checkGlErrors();
-	// 	cout << endl << endl;
-	// }
+	checkGlErrors();
+	glBindBuffer( GL_ARRAY_BUFFER, tfvbo );
+	float * TFBdata = static_cast<float*>( glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY) );
+	if ( TFBdata == NULL ) {
+		cout << "TFBdata == NULL\n";
+		checkGlErrors();
+	}
+	else
+	{
+		// fputs("TFB contents: ", stdout);
+		// for ( int i = 0; i < 2*3*4; i ++ )
+		// 	printf( "% 10f  ", TFBdata[i] );
+		// putchar('\n');
+	}
+	bool success = glUnmapBuffer( GL_ARRAY_BUFFER );
+	if ( ! success ) {
+		cout << "glUnmapBuffer failed";
+		checkGlErrors();
+		cout << endl << endl;
+	}
 
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
