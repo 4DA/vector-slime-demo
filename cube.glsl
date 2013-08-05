@@ -1,4 +1,4 @@
--- Vertex
+-- Vertex.transform
 layout(location = 0) in vec4 position;
 layout(location = 1) in vec4 normal;
 
@@ -78,7 +78,19 @@ mat4 translationMatrix(vec4 tv)
 
 }
 
--- Geometry
+-- Vertex.passthrough
+layout(location = 0) in vec4 position;
+layout(location = 1) in vec4 normal;
+
+uniform vec3 light_direction;
+
+void main()
+{
+	gl_Position = position;
+}
+
+
+-- Geometry.stream_out
 #extension GL_EXT_geometry_shader4: enable
 
 layout(triangles) in;
@@ -100,6 +112,30 @@ void main() {
 	
 	EndPrimitive();
 }
+
+-- Geometry.shadow_volumes
+#extension GL_EXT_geometry_shader4: enable
+
+layout(triangles) in;
+layout(triangle_strip, max_vertices = 3) out;
+smooth in vec4 interpColor[1];
+smooth out vec4 gsInterpColor;
+			    
+void main() {
+	gsInterpColor = interpColor[0];
+
+	gl_Position = gl_in[0].gl_Position;
+	EmitVertex();
+
+	gl_Position = gl_in[1].gl_Position;
+	EmitVertex();
+
+	gl_Position = gl_in[2].gl_Position;
+	EmitVertex();
+	
+	EndPrimitive();
+}
+
 
 
 -- Fragment

@@ -45,7 +45,9 @@ GLuint cubeVertBuffer;
 GLuint cubeNormalBuffer;
 GLuint cubeVAO;
 int cubeVertexNum;
-GLuint theProgram;
+GLuint slimeEffectProgram;
+GLuint shadowVolProgram;
+
 GLuint cubeIndexBO;
 
 GLuint tfvbo;
@@ -226,7 +228,7 @@ void setupTransformFeedbackBuffer(void)
 {
 	int attr[] =
 		{
-			glGetVaryingLocationNV(theProgram, "gl_Position"),
+			glGetVaryingLocationNV(slimeEffectProgram, "gl_Position"),
 		};
 	
 	checkGlErrors();
@@ -239,7 +241,7 @@ void setupTransformFeedbackBuffer(void)
 	// bind the TFB to get the feedback;  MUST be done here, not in display() !
 	glBindBufferBase( GL_TRANSFORM_FEEDBACK_BUFFER_EXT, 0, tfvbo );
 	
-	glTransformFeedbackVaryingsNV( theProgram, 1, attr, GL_INTERLEAVED_ATTRIBS_EXT );
+	glTransformFeedbackVaryingsNV( slimeEffectProgram, 1, attr, GL_INTERLEAVED_ATTRIBS_EXT );
 
 	checkGlErrors();
 }
@@ -273,32 +275,32 @@ void initCube(void)
 	glGenVertexArrays(1, &cubeVAO);
 	glBindVertexArray(cubeVAO);
 
-	theProgram = CreateProgram("cube.Vertex", "cube.Geometry", "cube.Fragment");
-	basicOffsetUn = glGetUniformLocation(theProgram, "basic_offset");
-	perspectiveMatrixUn = glGetUniformLocation(theProgram, "perspectiveMatrix");
+	slimeEffectProgram = CreateProgram("cube.Vertex.transform", "cube.Geometry.stream_out", "cube.Fragment");
+	basicOffsetUn = glGetUniformLocation(slimeEffectProgram, "basic_offset");
+	perspectiveMatrixUn = glGetUniformLocation(slimeEffectProgram, "perspectiveMatrix");
 
-	tUniform = glGetUniformLocation(theProgram, "T");
-	magnitudeUniform = glGetUniformLocation(theProgram, "magnitude");
-	fcenterUniform = glGetUniformLocation(theProgram, "force_center");
-	// axisUniform = glGetUniformLocation(theProgram, "axis");
-	lightDirUniform = glGetUniformLocation(theProgram, "light_direction");
-	lposUniform = glGetUniformLocation(theProgram, "l_pos");
-	lightIntensityUniform = glGetUniformLocation(theProgram, "light_intensity");
+	tUniform = glGetUniformLocation(slimeEffectProgram, "T");
+	magnitudeUniform = glGetUniformLocation(slimeEffectProgram, "magnitude");
+	fcenterUniform = glGetUniformLocation(slimeEffectProgram, "force_center");
+	// axisUniform = glGetUniformLocation(slimeEffectProgram, "axis");
+	lightDirUniform = glGetUniformLocation(slimeEffectProgram, "light_direction");
+	lposUniform = glGetUniformLocation(slimeEffectProgram, "l_pos");
+	lightIntensityUniform = glGetUniformLocation(slimeEffectProgram, "light_intensity");
 
-	ax1un = glGetUniformLocation(theProgram, "ax1");
-	ax2un = glGetUniformLocation(theProgram, "ax2");
-	ax3un = glGetUniformLocation(theProgram, "ax3");
-	ax4un = glGetUniformLocation(theProgram, "ax4");
+	ax1un = glGetUniformLocation(slimeEffectProgram, "ax1");
+	ax2un = glGetUniformLocation(slimeEffectProgram, "ax2");
+	ax3un = glGetUniformLocation(slimeEffectProgram, "ax3");
+	ax4un = glGetUniformLocation(slimeEffectProgram, "ax4");
 
-	t1un = glGetUniformLocation(theProgram, "t1");
-	t2un = glGetUniformLocation(theProgram, "t2");
-	t3un = glGetUniformLocation(theProgram, "t3");
-	t4un = glGetUniformLocation(theProgram, "t4");
+	t1un = glGetUniformLocation(slimeEffectProgram, "t1");
+	t2un = glGetUniformLocation(slimeEffectProgram, "t2");
+	t3un = glGetUniformLocation(slimeEffectProgram, "t3");
+	t4un = glGetUniformLocation(slimeEffectProgram, "t4");
 
-	dmod1un = glGetUniformLocation(theProgram, "dmod1");
-	dmod2un = glGetUniformLocation(theProgram, "dmod2");
-	dmod3un = glGetUniformLocation(theProgram, "dmod3");
-	dmod4un = glGetUniformLocation(theProgram, "dmod4");
+	dmod1un = glGetUniformLocation(slimeEffectProgram, "dmod1");
+	dmod2un = glGetUniformLocation(slimeEffectProgram, "dmod2");
+	dmod3un = glGetUniformLocation(slimeEffectProgram, "dmod3");
+	dmod4un = glGetUniformLocation(slimeEffectProgram, "dmod4");
 	
 	memset(perspectiveMatrix, 0, sizeof(float) * 16);
 	perspectiveMatrix[0] = fFrustumScale;
@@ -309,6 +311,9 @@ void initCube(void)
 
 	setupTransformFeedbackBuffer();
 	glGenQueries(1, &query);
+
+	shadowVolProgram = CreateProgram("cube.Vertex.passthrough", "cube.Geometry.stream_out", "cube.Fragment");
+	
 }
 
 GLuint CreateProgram(const char* vsKey, const char* gsKey, const char* fsKey)
@@ -416,7 +421,7 @@ glm::vec3 genNonColinear(glm::vec3 &prev) {
 	return nv;
 }
 
-void setUniforms(int t) {
+void setCubeTransformUniforms(int t) {
 	glUniform4f(basicOffsetUn, 0.0f, -6.0f, -30.0f, 0);
 
 	glUniform1f(tUniform, t);
@@ -504,6 +509,10 @@ void setUniforms(int t) {
 	glUniform1f(dmod4un, dmod4);
 }
 
+void setShadowVolUniforms() {
+
+}
+
 /*
   General transform feedback path:
   
@@ -529,6 +538,24 @@ glEndQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN );
 //  Retrieve our queries, enable RASTERIZER_DISCARD and render with our resulting TF buffer(s).
  */
 
+
+void setCubeTransformData(float t) {
+	glUseProgram(slimeEffectProgram);
+	
+	glBindBuffer(GL_ARRAY_BUFFER, cubeVertBuffer);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, cubeNormalBuffer);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeIndexBO);
+
+	setCubeTransformUniforms(t);
+}
+
+
 static void redraw(void) {
 	static float t=0;
 	int a,b;
@@ -543,28 +570,14 @@ static void redraw(void) {
 	
 	glShadeModel(GL_SMOOTH);
 
-	glUseProgram(theProgram);
-	
-	glBindBuffer(GL_ARRAY_BUFFER, cubeVertBuffer);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
-
-	glBindBuffer(GL_ARRAY_BUFFER, cubeNormalBuffer);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
-
-	setUniforms(t);
+	setCubeTransformData(t);
 
 	glBindBuffer( GL_ARRAY_BUFFER, tfvbo );
-
 	glBeginQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN_EXT, query );
 
 	// start transform feedback so that vertices get targetted to 'tfvbo'
 	glBeginTransformFeedbackNV( GL_TRIANGLES );
 
-
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeIndexBO);
 	glDrawElements(GL_TRIANGLES, sCube.ids.size(), GL_UNSIGNED_INT, NULL);
 
 	glEndTransformFeedbackNV();
@@ -674,7 +687,7 @@ void reshape (int w, int h)
 	perspectiveMatrix[0] = fFrustumScale / (w / (float)h);
 	perspectiveMatrix[5] = fFrustumScale;
 
-	glUseProgram(theProgram);
+	glUseProgram(slimeEffectProgram);
 	glUniformMatrix4fv(perspectiveMatrixUn, 1, GL_FALSE, perspectiveMatrix);
 	glUseProgram(0);
 	
