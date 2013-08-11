@@ -80,7 +80,6 @@ mat4 translationMatrix(vec4 tv)
 
 -- Vertex.passthrough
 layout(location = 0) in vec4 position;
-layout(location = 1) in vec4 normal;
 
 uniform vec3 light_direction;
 
@@ -116,7 +115,7 @@ void main() {
 -- Geometry.shadow_volumes
 #extension GL_EXT_geometry_shader4: enable
 
-layout(triangles) in;
+layout(triangles_adjacency) in;
 layout(triangle_strip, max_vertices = 3) out;
 smooth in vec4 interpColor[1];
 smooth out vec4 gsInterpColor;

@@ -44,11 +44,13 @@ const float pi = 3.14159265 ; // For portability across platforms
 GLuint cubeVertBuffer;
 GLuint cubeNormalBuffer;
 GLuint cubeVAO;
+GLuint shadowVolVAO;
 int cubeVertexNum;
 GLuint slimeEffectProgram;
 GLuint shadowVolProgram;
 
 GLuint cubeIndexBO;
+GLuint cubeAdjIndexBO;
 
 GLuint tfvbo;
 GLuint query;
@@ -111,22 +113,23 @@ float DISPLACE_PER_UNIT = 5;
 // to - (back, right, top)
 
 void generatePolyCubeVerts(vec3 from, vec3 to, int face_fpartition, Cube &c) {
-	float sx = (to.x - from.x) / face_fpartition;
-	float sy = (to.y - from.y) / face_fpartition;
-	float sz = (to.z - from.z) / face_fpartition;
+	int &fp = face_fpartition;
+
+	float sx = (to.x - from.x) / fp;
+	float sy = (to.y - from.y) / fp;
+	float sz = (to.z - from.z) / fp;
 
 	cout << from.z << endl;
 	cout << to.z << endl;
 	
-	//indices normally follow CW-ordering
-	for (int oft, quad = 0; quad < face_fpartition * face_fpartition * 6 ; quad++) {
+	//indices normally follow CCW-ordering
+	for (int oft, quad = 0; quad < fp * fp * 6 ; quad++) {
 		oft = quad * 4;
 
-		// cout << "fp^2 = " << face_fpartition * face_fpartition << endl;
+		// cout << "fp^2 = " << fp * fp << endl;
 		// cout << "quad no. " << quad << endl;
 		
-		if (quad / (face_fpartition * face_fpartition) % 2) {
-			// cout << "cw\n";
+		if (quad / (fp * fp) % 2) {
 			c.ids.push_back (oft);
 			c.ids.push_back (oft+1);
 			c.ids.push_back (oft+2);
@@ -134,10 +137,9 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_fpartition, Cube &c) {
 			c.ids.push_back (oft);
 			c.ids.push_back (oft+3);
 			c.ids.push_back (oft+1);
-
+			
 		}
 		else {
-			// cout << "ccw\n";
 			c.ids.push_back (oft);
 			c.ids.push_back (oft+2);
 			c.ids.push_back (oft+1);
@@ -149,18 +151,48 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_fpartition, Cube &c) {
 		}
 	}
 
-	//indices for adjacency
-	for (int oft, quad = 0; quad < face_fpartition * face_fpartition * 6 ; quad++) {
+// Triangle adjacency information
+	
+//	  2    	      3	       	    4
+//	  O-----------O------------O
+//	    \-        |\-	   |
+//	      \-      |	 \--	   |
+//	        \-    |	    \-	   |
+//	          \-  |	      \--  |
+//	   	    \-| 1	 \-|
+//	   	      O------------O 5
+//	   	        \-	   |
+//	   		  \-	   |
+//	       	       	    \- 	   |
+//			      \-   |
+//			        \- |
+//			       	  \0 6
+//	
+
+	//indices for adjacency TODO: fix corner cases
+	for (int oft, quad = 0; quad < fp * fp * 6 ; quad++) {
 		oft = quad * 4;
 
-		// c.ids_adj.push_back (oft);   // 1
-		// c.ids_adj.push_back (oft+2); // 3
-		// c.ids_adj.push_back (oft+1); // 5 
+  		c.ids_adj.push_back (oft);      
+  		c.ids_adj.push_back (oft+2);   
+  		c.ids_adj.push_back (oft+1);     
+  		c.ids_adj.push_back (oft+5);   
+  		c.ids_adj.push_back (oft+3);   
+  		c.ids_adj.push_back (oft-fp*4);
+
+  		c.ids_adj.push_back (oft+2);   
+  		c.ids_adj.push_back (oft-1);   
+  		c.ids_adj.push_back (oft);     
+  		c.ids_adj.push_back (oft+3);   
+  		c.ids_adj.push_back (oft+1);   
+  		c.ids_adj.push_back (oft+fp*4+1);
 	}
 
+	cout << "c.ids_adj size = " << c.ids_adj.size() << endl;
+
 	//1 (front)
-	for (int px = 0; px < face_fpartition; px++)
-		for (int py = 0; py < face_fpartition; py++) {
+	for (int px = 0; px < fp; px++)
+		for (int py = 0; py < fp; py++) {
 			c.verts.push_back( from.x + px * sx); c.verts.push_back(     from.y + (py+1) * sy); c.verts.push_back(from.z); c.verts.push_back(1.0);
 			c.verts.push_back( from.x + (px+1) * sx); c.verts.push_back( from.y + py * sy);     c.verts.push_back(from.z); c.verts.push_back(1.0);
 			c.verts.push_back( from.x + px * sx); c.verts.push_back(     from.y + py * sy);     c.verts.push_back(from.z); c.verts.push_back(1.0);
@@ -168,73 +200,73 @@ void generatePolyCubeVerts(vec3 from, vec3 to, int face_fpartition, Cube &c) {
 		}
 
 	
-	for (int vid = 0; vid < face_fpartition * face_fpartition * 4; vid++) {
+	for (int vid = 0; vid < fp * fp * 4; vid++) {
 		c.normals.push_back(0.0); c.normals.push_back(0.0); c.normals.push_back(-1.0); c.normals.push_back(0.0);
 	}
 
 	//4 (back)
-	for (int px = 0; px < face_fpartition; px++)
-		for (int py = 0; py < face_fpartition; py++) {
+	for (int px = 0; px < fp; px++)
+		for (int py = 0; py < fp; py++) {
 			c.verts.push_back( from.x + px * sx); c.verts.push_back(     from.y + (py+1) * sy); c.verts.push_back(to.z); c.verts.push_back(1.0);
 			c.verts.push_back( from.x + (px+1) * sx); c.verts.push_back( from.y + py * sy);     c.verts.push_back(to.z); c.verts.push_back(1.0);
 			c.verts.push_back( from.x + px * sx); c.verts.push_back(     from.y + py * sy);     c.verts.push_back(to.z); c.verts.push_back(1.0);
 			c.verts.push_back( from.x + (px+1) * sx); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(to.z); c.verts.push_back(1.0);
 		}
 	
-	for (int vid = 0; vid < face_fpartition * face_fpartition * 4; vid++) {
+	for (int vid = 0; vid < fp * fp * 4; vid++) {
 		c.normals.push_back(0.0); c.normals.push_back(0.0); c.normals.push_back(1.0); c.normals.push_back(0.0);
 	}
 
 	// 6 (left)
-	for (int pz = 0; pz < face_fpartition; pz++)
-		for (int py = 0; py < face_fpartition; py++) {
+	for (int pz = 0; pz < fp; pz++)
+		for (int py = 0; py < fp; py++) {
 			c.verts.push_back( from.x); c.verts.push_back( from.y + py     * sy); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
 			c.verts.push_back( from.x); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
 			c.verts.push_back( from.x); c.verts.push_back( from.y + py     * sy); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
 			c.verts.push_back( from.x); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(from.z + (pz+1)* sz);  c.verts.push_back(1.0);
 		}
 
-	for (int vid = 0; vid < face_fpartition * face_fpartition * 4; vid++) {
+	for (int vid = 0; vid < fp * fp * 4; vid++) {
 		c.normals.push_back(-1.0); c.normals.push_back(0.0); c.normals.push_back(0.0); c.normals.push_back(0.0);
 	}
 
  	// 2 (right)
-	for (int pz = 0; pz < face_fpartition; pz++)
-		for (int py = 0; py < face_fpartition; py++) {
+	for (int pz = 0; pz < fp; pz++)
+		for (int py = 0; py < fp; py++) {
 			c.verts.push_back( to.x); c.verts.push_back( from.y + py     * sy); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
 			c.verts.push_back( to.x); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
 			c.verts.push_back( to.x); c.verts.push_back( from.y + py     * sy); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
 			c.verts.push_back( to.x); c.verts.push_back( from.y + (py+1) * sy); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
 		}
 
-	for (int vid = 0; vid < face_fpartition * face_fpartition * 4; vid++) {
+	for (int vid = 0; vid < fp * fp * 4; vid++) {
 		c.normals.push_back(1.0); c.normals.push_back(0.0); c.normals.push_back(0.0); c.normals.push_back(0.0);
 	}
 
 
 	// 5 (top)
-	for (int pz = 0; pz < face_fpartition; pz++)
-		for (int px = 0; px < face_fpartition; px++) {
+	for (int pz = 0; pz < fp; pz++)
+		for (int px = 0; px < fp; px++) {
 			c.verts.push_back( from.x + px*sx); c.verts.push_back(     to.y); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
 			c.verts.push_back( from.x + (px+1)*sx); c.verts.push_back( to.y); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
 			c.verts.push_back( from.x + px*sx); c.verts.push_back(     to.y); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
 			c.verts.push_back( from.x + (px+1)*sx); c.verts.push_back( to.y); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
 		}
 
-	for (int vid = 0; vid < face_fpartition * face_fpartition * 4; vid++) {
+	for (int vid = 0; vid < fp * fp * 4; vid++) {
 		c.normals.push_back(0.0); c.normals.push_back(1.0); c.normals.push_back(0.0); c.normals.push_back(0.0);
 	}
 
 	//3 (bottom)
-	for (int pz = 0; pz < face_fpartition; pz++)
-		for (int px = 0; px < face_fpartition; px++) {
+	for (int pz = 0; pz < fp; pz++)
+		for (int px = 0; px < fp; px++) {
 			c.verts.push_back( from.x + px*sx); c.verts.push_back(     from.y); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
 			c.verts.push_back( from.x + (px+1)*sx); c.verts.push_back( from.y); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
 			c.verts.push_back( from.x + px*sx); c.verts.push_back(     from.y); c.verts.push_back(from.z + pz * sz); c.verts.push_back(1.0);
 			c.verts.push_back( from.x + (px+1)*sx); c.verts.push_back( from.y); c.verts.push_back(from.z + (pz+1)* sz); c.verts.push_back(1.0);
 		}
 
-	for (int vid = 0; vid < face_fpartition * face_fpartition * 4; vid++) {
+	for (int vid = 0; vid < fp * fp * 4; vid++) {
 		c.normals.push_back(0.0); c.normals.push_back(-1.0); c.normals.push_back(0.0); c.normals.push_back(0.0);
 	}
 }
@@ -289,6 +321,11 @@ void initVertexBuffer() {
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sCube.ids.size() * sizeof(int), &sCube.ids[0], GL_STATIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
+	glGenBuffers(1, &cubeAdjIndexBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeAdjIndexBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sCube.ids_adj.size() * sizeof(int), &sCube.ids_adj[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
 }
 
 void initCube(void)
@@ -299,7 +336,7 @@ void initCube(void)
 	cout << "Going to render " << sCube.verts.size() / 3 << " polygons" << endl;
 
 	glGenVertexArrays(1, &cubeVAO);
-	glBindVertexArray(cubeVAO);
+
 
 	slimeEffectProgram = CreateProgram("cube.Vertex.transform", "cube.Geometry.stream_out", "cube.Fragment");
 	basicOffsetUn = glGetUniformLocation(slimeEffectProgram, "basic_offset");
@@ -338,7 +375,11 @@ void initCube(void)
 	setupTransformFeedbackBuffer();
 	glGenQueries(1, &query);
 
-	shadowVolProgram = CreateProgram("cube.Vertex.passthrough", "cube.Geometry.stream_out", "cube.Fragment");
+	glGenVertexArrays(1, &shadowVolVAO);
+
+	shadowVolProgram = CreateProgram("cube.Vertex.passthrough",
+					 "cube.Geometry.shadow_volumes",
+					 "cube.Fragment");
 	
 }
 
@@ -363,6 +404,11 @@ GLuint CreateProgram(const char* vsKey, const char* gsKey, const char* fsKey)
     GLuint types[3] = {GL_VERTEX_SHADER, GL_GEOMETRY_SHADER, GL_FRAGMENT_SHADER};
 
     for (int i = 0; i < 3; i++) {
+	    if (sources[i] == NULL) {
+		    cout << types[i] << "is not installed\n";
+		    continue;
+	    }
+	    
 	    shader_id = initShader(types[i], sources[i]);
 	    glAttachShader(program, shader_id);
 	    shaderList.push_back(shader_id);
@@ -579,10 +625,14 @@ void setCubeTransformData(float t) {
 }
 
 void setShadowVolUniformsData() {
+	glUseProgram(shadowVolProgram);
 
+	glBindBuffer(GL_ARRAY_BUFFER, tfvbo);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
 
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeAdjIndexBO);
 }
-
 
 static void redraw(void) {
 	static float t=0;
@@ -598,6 +648,7 @@ static void redraw(void) {
 	
 	glShadeModel(GL_SMOOTH);
 
+	glBindVertexArray(cubeVAO);
 	setCubeTransformData(t);
 
 	glBindBuffer( GL_ARRAY_BUFFER, tfvbo );
@@ -605,8 +656,11 @@ static void redraw(void) {
 
 	// start transform feedback so that vertices get targetted to 'tfvbo'
 	glBeginTransformFeedbackNV( GL_TRIANGLES );
-
+	// cout << "going to render " << sCube.ids.size() << " polygons\n";
+	glEnable( GL_RASTERIZER_DISCARD );
+	
 	glDrawElements(GL_TRIANGLES, sCube.ids.size(), GL_UNSIGNED_INT, NULL);
+	glDisable( GL_RASTERIZER_DISCARD );
 
 	glEndTransformFeedbackNV();
 	glEndQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN_EXT );
@@ -614,30 +668,41 @@ static void redraw(void) {
 	GLuint primitives_written;
 	// read back query results
 	glGetQueryObjectuiv( query, GL_QUERY_RESULT, &primitives_written );
+	// fprintf( stderr, "Primitives written to TFB: %d !\n", primitives_written );
 	if ( primitives_written == 0 )
 		fprintf( stderr, "Primitives written to TFB: %d !\n", primitives_written );
 	
 	// retrieve the data stored in the TFB
 	checkGlErrors();
-	glBindBuffer( GL_ARRAY_BUFFER, tfvbo );
-	float * TFBdata = static_cast<float*>( glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY) );
-	if ( TFBdata == NULL ) {
-		cout << "TFBdata == NULL\n";
-		checkGlErrors();
-	}
-	else
-	{
-		// fputs("TFB contents: ", stdout);
-		// for ( int i = 0; i < 2*3*4; i ++ )
-		// 	printf( "% 10f  ", TFBdata[i] );
-		// putchar('\n');
-	}
-	bool success = glUnmapBuffer( GL_ARRAY_BUFFER );
-	if ( ! success ) {
-		cout << "glUnmapBuffer failed";
-		checkGlErrors();
-		cout << endl << endl;
-	}
+
+	glBindVertexArray(shadowVolVAO);
+
+	setShadowVolUniformsData();
+
+
+	// cout << "going to render " << primitives_written << " TF polygons\n";
+	glDrawElements(GL_TRIANGLES_ADJACENCY, sCube.ids_adj.size(), GL_UNSIGNED_INT, NULL);
+	
+	// glBindBuffer( GL_ARRAY_BUFFER, tfvbo );
+	
+	// float * TFBdata = static_cast<float*>( glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY) );
+	// if ( TFBdata == NULL ) {
+	// 	cout << "TFBdata == NULL\n";
+	// 	checkGlErrors();
+	// }
+	// else
+	// {
+	// 	fputs("TFB contents: ", stdout);
+	// 	for ( int i = 0; i < 2*3*4; i ++ )
+	// 		printf( "% 10f  ", TFBdata[i] );
+	// 	putchar('\n');
+	// }
+	// bool success = glUnmapBuffer( GL_ARRAY_BUFFER );
+	// if ( ! success ) {
+	// 	cout << "glUnmapBuffer failed";
+	// 	checkGlErrors();
+	// 	cout << endl << endl;
+	// }
 
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
@@ -721,6 +786,7 @@ void reshape (int w, int h)
 	
 	glViewport(0, 0, (GLsizei) w, (GLsizei) w);
 }
+
 
 
 int main(int argc, char **argv) 
