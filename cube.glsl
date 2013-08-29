@@ -94,7 +94,7 @@ void main()
 
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
-smooth in vec4 interpColor[1];
+smooth in vec4 interpColor[];
 smooth out vec4 gsInterpColor;
 			    
 void main() {
