@@ -46,14 +46,15 @@ GLuint cubeNormalBuffer;
 GLuint cubeVAO;
 GLuint shadowVolVAO;
 int cubeVertexNum;
-GLuint slimeEffectProgram;
+GLuint slimeTransformPr;
 GLuint shadowVolProgram;
 
 GLuint cubeIndexBO;
 GLuint cubeAdjIndexBO;
 
 GLuint tfvbo;
-GLuint query;
+GLuint query_generated;
+GLuint query_written;
 
 void initCube(void);
 static void redraw(void);
@@ -276,7 +277,7 @@ void checkGlErrors( void )
 	GLenum e = glGetError();
 	while ( e != GL_NO_ERROR )
 	{
-		fprintf( stderr, "GL error: %s!\n", gluErrorString(e) );
+		printf("GL error: %s!\n", gluErrorString(e) );
 		e = glGetError();
 	}
 }
@@ -284,24 +285,18 @@ void checkGlErrors( void )
 
 void setupTransformFeedbackBuffer(void)
 {
-	int attr[] =
-		{
-			glGetVaryingLocationNV(slimeEffectProgram, "gl_Position"),
-		};
-	
-	checkGlErrors();
+	const char *attr[] = {"gl_Position"};
 
-	// generating the buffer, note that GL_TRANSFORM_FEEDBACK_BUFFER is NOT a buffer type
 	glGenBuffers( 1, &tfvbo );
-	glBindBuffer( GL_ARRAY_BUFFER, tfvbo );
-	glBufferData( GL_ARRAY_BUFFER, sCube.verts.size() * sizeof(float), NULL, GL_DYNAMIC_DRAW );
-	
-	// bind the TFB to get the feedback;  MUST be done here, not in display() !
-	glBindBufferBase( GL_TRANSFORM_FEEDBACK_BUFFER_EXT, 0, tfvbo );
-	
-	glTransformFeedbackVaryingsNV( slimeEffectProgram, 1, attr, GL_INTERLEAVED_ATTRIBS_EXT );
+	glBindBuffer( GL_TRANSFORM_FEEDBACK_BUFFER, tfvbo );
 
-	checkGlErrors();
+	glBufferData( GL_TRANSFORM_FEEDBACK_BUFFER, sCube.verts.size() * sizeof(float), NULL, GL_DYNAMIC_DRAW );
+
+	glBindBufferBase( GL_TRANSFORM_FEEDBACK_BUFFER, 0, tfvbo );
+
+	glTransformFeedbackVaryings( slimeTransformPr, 1, attr, GL_INTERLEAVED_ATTRIBS );
+	checkGlErrors();		
+
 }
 
 void initVertexBuffer() {
@@ -338,32 +333,32 @@ void initCube(void)
 	glGenVertexArrays(1, &cubeVAO);
 
 
-	slimeEffectProgram = CreateProgram("cube.Vertex.transform", "cube.Geometry.stream_out", "cube.Fragment");
-	basicOffsetUn = glGetUniformLocation(slimeEffectProgram, "basic_offset");
-	perspectiveMatrixUn = glGetUniformLocation(slimeEffectProgram, "perspectiveMatrix");
+	slimeTransformPr = CreateProgram("cube.Vertex.transform", "cube.Geometry.stream_out", "cube.Fragment");
+	basicOffsetUn = glGetUniformLocation(slimeTransformPr, "basic_offset");
+	perspectiveMatrixUn = glGetUniformLocation(slimeTransformPr, "perspectiveMatrix");
 
-	tUniform = glGetUniformLocation(slimeEffectProgram, "T");
-	magnitudeUniform = glGetUniformLocation(slimeEffectProgram, "magnitude");
-	fcenterUniform = glGetUniformLocation(slimeEffectProgram, "force_center");
-	// axisUniform = glGetUniformLocation(slimeEffectProgram, "axis");
-	lightDirUniform = glGetUniformLocation(slimeEffectProgram, "light_direction");
-	lposUniform = glGetUniformLocation(slimeEffectProgram, "l_pos");
-	lightIntensityUniform = glGetUniformLocation(slimeEffectProgram, "light_intensity");
+	tUniform = glGetUniformLocation(slimeTransformPr, "T");
+	magnitudeUniform = glGetUniformLocation(slimeTransformPr, "magnitude");
+	fcenterUniform = glGetUniformLocation(slimeTransformPr, "force_center");
+	// axisUniform = glGetUniformLocation(slimeTransformPr, "axis");
+	lightDirUniform = glGetUniformLocation(slimeTransformPr, "light_direction");
+	lposUniform = glGetUniformLocation(slimeTransformPr, "l_pos");
+	lightIntensityUniform = glGetUniformLocation(slimeTransformPr, "light_intensity");
 
-	ax1un = glGetUniformLocation(slimeEffectProgram, "ax1");
-	ax2un = glGetUniformLocation(slimeEffectProgram, "ax2");
-	ax3un = glGetUniformLocation(slimeEffectProgram, "ax3");
-	ax4un = glGetUniformLocation(slimeEffectProgram, "ax4");
+	ax1un = glGetUniformLocation(slimeTransformPr, "ax1");
+	ax2un = glGetUniformLocation(slimeTransformPr, "ax2");
+	ax3un = glGetUniformLocation(slimeTransformPr, "ax3");
+	ax4un = glGetUniformLocation(slimeTransformPr, "ax4");
 
-	t1un = glGetUniformLocation(slimeEffectProgram, "t1");
-	t2un = glGetUniformLocation(slimeEffectProgram, "t2");
-	t3un = glGetUniformLocation(slimeEffectProgram, "t3");
-	t4un = glGetUniformLocation(slimeEffectProgram, "t4");
+	t1un = glGetUniformLocation(slimeTransformPr, "t1");
+	t2un = glGetUniformLocation(slimeTransformPr, "t2");
+	t3un = glGetUniformLocation(slimeTransformPr, "t3");
+	t4un = glGetUniformLocation(slimeTransformPr, "t4");
 
-	dmod1un = glGetUniformLocation(slimeEffectProgram, "dmod1");
-	dmod2un = glGetUniformLocation(slimeEffectProgram, "dmod2");
-	dmod3un = glGetUniformLocation(slimeEffectProgram, "dmod3");
-	dmod4un = glGetUniformLocation(slimeEffectProgram, "dmod4");
+	dmod1un = glGetUniformLocation(slimeTransformPr, "dmod1");
+	dmod2un = glGetUniformLocation(slimeTransformPr, "dmod2");
+	dmod3un = glGetUniformLocation(slimeTransformPr, "dmod3");
+	dmod4un = glGetUniformLocation(slimeTransformPr, "dmod4");
 	
 	memset(perspectiveMatrix, 0, sizeof(float) * 16);
 	perspectiveMatrix[0] = fFrustumScale;
@@ -373,14 +368,15 @@ void initCube(void)
 	perspectiveMatrix[11] = -1.0f;
 
 	setupTransformFeedbackBuffer();
-	glGenQueries(1, &query);
+	glGenQueries(1, &query_generated);
+	glGenQueries(1, &query_written);
+	
 
 	glGenVertexArrays(1, &shadowVolVAO);
 
 	shadowVolProgram = CreateProgram("cube.Vertex.passthrough",
 					 "cube.Geometry.shadow_volumes",
 					 "cube.Fragment");
-	
 }
 
 GLuint CreateProgram(const char* vsKey, const char* gsKey, const char* fsKey)
@@ -609,7 +605,7 @@ glEndQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN );
 
 
 void setCubeTransformData(float t) {
-	glUseProgram(slimeEffectProgram);
+	glUseProgram(slimeTransformPr);
 	
 	glBindBuffer(GL_ARRAY_BUFFER, cubeVertBuffer);
 	glEnableVertexAttribArray(0);
@@ -651,34 +647,49 @@ static void redraw(void) {
 	glBindVertexArray(cubeVAO);
 	setCubeTransformData(t);
 
-	glBindBuffer( GL_ARRAY_BUFFER, tfvbo );
-	glBeginQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN_EXT, query );
-
+	// glBindBuffer( GL_ARRAY_BUFFER, tfvbo );
+	glBindBufferBase( GL_TRANSFORM_FEEDBACK_BUFFER, 0, tfvbo );
+	
 	// start transform feedback so that vertices get targetted to 'tfvbo'
-	glBeginTransformFeedbackNV( GL_TRIANGLES );
+	glBeginTransformFeedback( GL_TRIANGLES );
+	checkGlErrors();
+	
+
+	glBeginQuery( GL_PRIMITIVES_GENERATED, query_generated );
+	glBeginQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, query_written );
+
 	// cout << "going to render " << sCube.ids.size() << " polygons\n";
 	glEnable( GL_RASTERIZER_DISCARD );
 	
 	glDrawElements(GL_TRIANGLES, sCube.ids.size(), GL_UNSIGNED_INT, NULL);
 	glDisable( GL_RASTERIZER_DISCARD );
 
-	glEndTransformFeedbackNV();
-	glEndQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN_EXT );
+	glEndQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN );
+	glEndQuery( GL_PRIMITIVES_GENERATED);
 
 	GLuint primitives_written;
-	// read back query results
-	glGetQueryObjectuiv( query, GL_QUERY_RESULT, &primitives_written );
-	// fprintf( stderr, "Primitives written to TFB: %d !\n", primitives_written );
-	if ( primitives_written == 0 )
-		fprintf( stderr, "Primitives written to TFB: %d !\n", primitives_written );
+	GLuint primitives_generated;
+
+	glGetQueryObjectuiv( query_generated, GL_QUERY_RESULT, &primitives_generated );
+	printf("Primitives generated: %d !\n", primitives_generated );
 	
-	// retrieve the data stored in the TFB
-	checkGlErrors();
+	// read back query results
+	do {
+		glGetQueryObjectuiv( query_written, GL_QUERY_RESULT, &primitives_written );
+		printf("Primitives written to TFB: %d !\n", primitives_written );
+		// if ( primitives_written == 0 )
+		// 	fprintf( stderr, "Primitives written to TFB: %d !\n", primitives_written );
+  	
+		// retrieve the data stored in the TFB
+		checkGlErrors();
+		usleep(1000);
+	}
+	while (primitives_written < primitives_generated);
+
+	glEndTransformFeedback();
 
 	glBindVertexArray(shadowVolVAO);
-
 	setShadowVolUniformsData();
-
 
 	// cout << "going to render " << primitives_written << " TF polygons\n";
 	glDrawElements(GL_TRIANGLES_ADJACENCY, sCube.ids_adj.size(), GL_UNSIGNED_INT, NULL);
@@ -780,7 +791,7 @@ void reshape (int w, int h)
 	perspectiveMatrix[0] = fFrustumScale / (w / (float)h);
 	perspectiveMatrix[5] = fFrustumScale;
 
-	glUseProgram(slimeEffectProgram);
+	glUseProgram(slimeTransformPr);
 	glUniformMatrix4fv(perspectiveMatrixUn, 1, GL_FALSE, perspectiveMatrix);
 	glUseProgram(0);
 	
