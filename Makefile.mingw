@@ -1,7 +1,11 @@
 DEBFLAGS=-g
-INCFLAGS = -I./glm-0.9.2.7 -I./mingw_prefix/include -L./mingw_prefix/lib
+INCFLAGS = -I./glm-0.9.2.7 -I./glsw -I./mingw_prefix/include -L./mingw_prefix/lib
+glsw_obj = glsw.o bstrlib.o
 
-cube-slime: 	cube-slime.cpp Makefile
-		g++ -std=c++0x $(DEBFLAGS) $(INCFLAGS) cube-slime.cpp -o cube-slime -lfreeglut -lglew32 -lopengl32 
+cube-slime: 	cube-slime.cpp Makefile glsw
+		g++ -std=c++0x $(DEBFLAGS) $(INCFLAGS) cube-slime.cpp -o cube-slime -lfreeglut -lglew32 -lglu32 -lopengl32 $(glsw_obj)
+
+glsw:           glsw/glsw.c glsw/bstrlib.c
+		g++ -c glsw/*.c
 clean:
 		rm *.o

@@ -34,6 +34,14 @@ using namespace std;
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtx/norm.hpp>
 
+void my_msleep (int msecs) {
+#ifdef _WIN32
+	Sleep(msecs);
+#else
+	usleep (msecs * 1000);
+#endif
+	return;
+}
 //light stuff
 float light_direction[4] = {0, 0.5, 0.7, 0.0};
 //----------
@@ -682,7 +690,7 @@ static void redraw(void) {
   	
 		// retrieve the data stored in the TFB
 		checkGlErrors();
-		usleep(1000);
+		my_msleep(1000);
 	}
 	while (primitives_written < primitives_generated);
 
@@ -811,7 +819,7 @@ int main(int argc, char **argv)
 	glutDisplayFunc(redraw);
 	glutReshapeFunc(reshape);
 
-	glEnable(GL_CULL_FACE);
+	glEnable(GL_CULL_FACE); 
 	glEnable (GL_DEPTH_TEST);
 
 	GLenum err = glewInit();
