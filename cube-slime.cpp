@@ -67,7 +67,7 @@ GLuint query_written;
 void initCube(void);
 static void redraw(void);
 GLuint initShader(GLenum eShaderType, const char *);
-GLuint CreateProgram(const char *, const char *, const char *);
+GLuint CreateProgram(GLuint, const char *, const char *, const char *);
 
 GLuint basicOffsetUn;
 GLuint perspectiveMatrixUn;
@@ -341,7 +341,9 @@ void initCube(void)
 	glGenVertexArrays(1, &cubeVAO);
 
 
-	slimeTransformPr = CreateProgram("cube.Vertex.transform", "cube.Geometry.stream_out", "cube.Fragment");
+	slimeTransformPr = glCreateProgram();
+	setupTransformFeedbackBuffer();
+	slimeTransformPr = CreateProgram(slimeTransformPr, "cube.Vertex.transform", "cube.Geometry.stream_out", "cube.Fragment");
 	basicOffsetUn = glGetUniformLocation(slimeTransformPr, "basic_offset");
 	perspectiveMatrixUn = glGetUniformLocation(slimeTransformPr, "perspectiveMatrix");
 
@@ -375,22 +377,25 @@ void initCube(void)
 	perspectiveMatrix[14] = (2 * fzFar * fzNear) / (fzNear - fzFar);
 	perspectiveMatrix[11] = -1.0f;
 
-	setupTransformFeedbackBuffer();
+	// setupTransformFeedbackBuffer();
 	glGenQueries(1, &query_generated);
 	glGenQueries(1, &query_written);
 	
 
 	glGenVertexArrays(1, &shadowVolVAO);
 
-	shadowVolProgram = CreateProgram("cube.Vertex.passthrough",
-					 "cube.Geometry.shadow_volumes",
-					 "cube.Fragment");
+	shadowVolProgram = CreateProgram(
+		glCreateProgram(),
+		"cube.Vertex.passthrough",
+		"cube.Geometry.shadow_volumes",
+		"cube.Fragment");
 }
 
-GLuint CreateProgram(const char* vsKey, const char* gsKey, const char* fsKey)
+GLuint CreateProgram(GLuint program, const char* vsKey, const char* gsKey, const char* fsKey)
 {
     static int first = 1;
-    GLuint shader_id, program = glCreateProgram();
+
+    GLuint shader_id;
     std::vector<GLuint> shaderList;
     
     if (first)
