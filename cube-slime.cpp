@@ -665,47 +665,44 @@ static void redraw(void) {
 	
 	// start transform feedback so that vertices get targetted to 'tfvbo'
 	glBeginTransformFeedback( GL_TRIANGLES );
-	checkGlErrors();
+	// checkGlErrors();
 	
 
 	glBeginQuery( GL_PRIMITIVES_GENERATED, query_generated );
-	glBeginQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, query_written );
+	glBeginQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, query_written);
 
-	// cout << "going to render " << sCube.ids.size() << " polygons\n";
-	glEnable( GL_RASTERIZER_DISCARD );
+	// glEnable( GL_RASTERIZER_DISCARD );
 	
 	glDrawElements(GL_TRIANGLES, sCube.ids.size(), GL_UNSIGNED_INT, NULL);
-	glDisable( GL_RASTERIZER_DISCARD );
+	// glDisable( GL_RASTERIZER_DISCARD );
 
 	glEndQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN );
 	glEndQuery( GL_PRIMITIVES_GENERATED);
+
+	glEndTransformFeedback();
 
 	GLuint primitives_written;
 	GLuint primitives_generated;
 
 	glGetQueryObjectuiv( query_generated, GL_QUERY_RESULT, &primitives_generated );
 	printf("Primitives generated: %d !\n", primitives_generated );
-	
-	// read back query results
-	do {
-		glGetQueryObjectuiv( query_written, GL_QUERY_RESULT, &primitives_written );
-		printf("Primitives written to TFB: %d !\n", primitives_written );
-		// if ( primitives_written == 0 )
-		// 	fprintf( stderr, "Primitives written to TFB: %d !\n", primitives_written );
-  	
-		// retrieve the data stored in the TFB
-		checkGlErrors();
-		my_msleep(1000);
-	}
-	while (primitives_written < primitives_generated);
 
-	glEndTransformFeedback();
+
+	// read back query results
+
+	glGetQueryObjectuiv( query_written, GL_QUERY_RESULT, &primitives_written );
+	printf("Primitives written to TFB: %d !\n", primitives_written );
+	if ( primitives_written == 0 )
+		fprintf( stderr, "Primitives written to TFB: %d !\n", primitives_written );
+  	
+	// retrieve the data stored in the TFB
+	checkGlErrors();
 
 	glBindVertexArray(shadowVolVAO);
-	setShadowVolUniformsData();
+	// setShadowVolUniformsData();
 
 	// cout << "going to render " << primitives_written << " TF polygons\n";
-	glDrawElements(GL_TRIANGLES_ADJACENCY, sCube.ids_adj.size(), GL_UNSIGNED_INT, NULL);
+	// glDrawElements(GL_TRIANGLES_ADJACENCY, sCube.ids_adj.size(), GL_UNSIGNED_INT, NULL);
 	
 	// glBindBuffer( GL_ARRAY_BUFFER, tfvbo );
 	
@@ -733,7 +730,6 @@ static void redraw(void) {
 	glUseProgram(0);
 	
 	glutSwapBuffers();
-	glutPostRedisplay();
 
 	t+=rSpeed;
 }
@@ -811,6 +807,10 @@ void reshape (int w, int h)
 	glViewport(0, 0, (GLsizei) w, (GLsizei) w);
 }
 
+void timer(int val) {
+	glutPostRedisplay();
+	glutTimerFunc(16, timer, 0);
+}
 
 
 int main(int argc, char **argv) 
@@ -823,6 +823,7 @@ int main(int argc, char **argv)
 	glutKeyboardFunc (Keyboard);
 	glutDisplayFunc(redraw);
 	glutReshapeFunc(reshape);
+	glutTimerFunc(16, timer, 0);
 
 	glEnable(GL_CULL_FACE); 
 	glEnable (GL_DEPTH_TEST);
